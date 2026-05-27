@@ -639,7 +639,7 @@ function inventoryCard(group) {
   return `
     <article class="inventory-card${group.consumed ? " is-consumed" : ""}">
       <div class="card-top">
-        ${imgHtml}
+        <div class="card-thumb-wrap">${imgHtml}</div>
         <button class="card-menu-btn" data-detail="${group.key}" type="button" aria-label="${escapeHtml(group.name)} 상세 보기">···</button>
       </div>
       <div class="card-body">
