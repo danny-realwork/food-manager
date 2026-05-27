@@ -33,6 +33,12 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (process.env.VERCEL) {
+      res.statusCode = 503;
+      res.end(JSON.stringify({ error: "BLOB_READ_WRITE_TOKEN not configured. Connect Blob Storage in Vercel project settings." }));
+      return;
+    }
+
     fs.mkdirSync(localImagesDir, { recursive: true });
     fs.writeFileSync(path.join(localImagesDir, filename), buffer);
     res.statusCode = 200;
