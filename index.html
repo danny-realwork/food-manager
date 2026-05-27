@@ -23,7 +23,7 @@
         <header class="topbar">
           <div>
             <p class="eyebrow" id="todayLabel"></p>
-            <h1 id="pageTitle">재고</h1>
+            <h1 id="pageTitle">상수집 재고</h1>
           </div>
           <div class="top-actions">
             <button class="icon-button" id="exportButton" type="button" title="내보내기">내보내기</button>
@@ -80,35 +80,40 @@
 
         <section class="screen is-active" id="screen-inventory" aria-labelledby="pageTitle">
           <div class="toolbar">
-            <label class="search-box">
-              <span>검색</span>
-              <input id="searchInput" type="search" placeholder="재료명">
-            </label>
-            <label>
-              <span>보관</span>
-              <select id="storageFilter">
-                <option value="all">전체</option>
-                <option value="냉장">냉장</option>
-                <option value="냉동">냉동</option>
-                <option value="실온">실온</option>
-              </select>
-            </label>
-            <label>
-              <span>상태</span>
-              <select id="statusFilter">
-                <option value="active">활성만</option>
-                <option value="all">소진 포함</option>
-                <option value="consumed">소진만</option>
-              </select>
-            </label>
-            <label>
-              <span>섹션 내 정렬</span>
-              <select id="sortFilter">
-                <option value="expiry">유통기한순</option>
-                <option value="recent">최근추가순</option>
-                <option value="name">이름순</option>
-              </select>
-            </label>
+            <div class="toolbar-top">
+              <label class="search-box">
+                <span>검색</span>
+                <input id="searchInput" type="search" placeholder="재료명">
+              </label>
+              <button class="filter-toggle-btn" id="filterToggle" type="button">필터</button>
+            </div>
+            <div class="toolbar-filters" id="toolbarFilters">
+              <label>
+                <span>보관</span>
+                <select id="storageFilter">
+                  <option value="all">전체</option>
+                  <option value="냉장">냉장</option>
+                  <option value="냉동">냉동</option>
+                  <option value="실온">실온</option>
+                </select>
+              </label>
+              <label>
+                <span>상태</span>
+                <select id="statusFilter">
+                  <option value="active">활성만</option>
+                  <option value="all">소진 포함</option>
+                  <option value="consumed">소진만</option>
+                </select>
+              </label>
+              <label>
+                <span>섹션 내 정렬</span>
+                <select id="sortFilter">
+                  <option value="expiry">유통기한순</option>
+                  <option value="recent">최근추가순</option>
+                  <option value="name">이름순</option>
+                </select>
+              </label>
+            </div>
           </div>
           <div class="category-tabs" id="categoryTabs" role="tablist" aria-label="재고 카테고리"></div>
           <div class="inventory-grid" id="inventoryGrid"></div>

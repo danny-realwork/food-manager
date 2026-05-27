@@ -162,6 +162,12 @@ function bindEvents() {
     saveState();
     renderActivity();
   });
+
+  els.filterToggle.addEventListener("click", () => {
+    const isOpen = els.toolbarFilters.classList.toggle("is-open");
+    els.filterToggle.textContent = isOpen ? "닫기" : "필터";
+    els.filterToggle.classList.toggle("is-active", isOpen);
+  });
 }
 
 function initializeUi() {
@@ -294,7 +300,7 @@ function saveState() {
 function setRoute(route) {
   const titleMap = {
     home: "홈",
-    inventory: "재고",
+    inventory: "상수집 재고",
     add: "추가",
     use: "사용",
     inbox: "입고함"
@@ -1541,12 +1547,6 @@ function openGroupDetail(groupKey) {
     <div class="lot-list">
       ${group.lots.map((lot) => `
         <article class="lot-row">
-          <div class="lot-main">
-            <div>
-              <strong>${formatQuantity(lot)}</strong>
-              <p class="lot-meta">${lot.storage} · ${lot.expiresAt ? formatDate(lot.expiresAt) : "유통기한 없음"}${lot.notes ? ` · ${escapeHtml(lot.notes)}` : ""}</p>
-            </div>
-          </div>
           <div class="detail-lot-fields">
             <label>
               <span>남은 수량</span>
