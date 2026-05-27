@@ -1153,7 +1153,7 @@ dialog::backdrop {
 
 .inventory-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
   overflow: visible;
   border: 0;
@@ -1162,131 +1162,131 @@ dialog::backdrop {
 }
 
 .inventory-card {
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  align-items: start;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   min-height: auto;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: var(--shadow-soft);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
   background: var(--surface);
-}
-
-.inventory-card:last-child {
-  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition: transform 130ms ease, box-shadow 130ms ease;
 }
 
 .inventory-card:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow);
-  background: var(--surface);
 }
 
-.inventory-main {
-  min-width: 0;
+.inventory-card.is-consumed {
+  opacity: 0.6;
 }
 
-.list-thumb {
-  display: grid;
-  width: 68px;
-  height: 68px;
-  place-items: center;
-  overflow: hidden;
-  border: 0;
-  border-radius: 12px;
-  padding: 0;
+.card-top {
+  position: relative;
+  aspect-ratio: 1;
   background: var(--surface-muted);
+  flex-shrink: 0;
 }
 
-.list-thumb .thumb,
-.list-thumb .fallback-thumb,
-.list-thumb-placeholder {
+.card-thumb-img {
   width: 100%;
   height: 100%;
-  border-radius: 0;
+  object-fit: cover;
+  display: block;
 }
 
-.list-thumb-placeholder {
+.card-thumb-fallback {
   display: grid;
   place-items: center;
-  color: var(--muted);
-  font-size: 12px;
+  width: 100%;
+  height: 100%;
+  color: var(--muted-weak);
+  font-size: 32px;
   font-weight: 900;
 }
 
-.inventory-main h3 {
+.card-menu-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink-weak);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  backdrop-filter: blur(4px);
+  line-height: 1;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px 12px;
+  flex: 1;
+}
+
+.card-name {
   display: -webkit-box;
   overflow: hidden;
-  min-height: 34px;
-  margin-bottom: 4px;
+  margin: 0;
   font-size: 15px;
-  line-height: 1.2;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
-.inventory-card .info-strip {
+.card-expiry-row {
   display: flex;
-  gap: 5px;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 4px;
+}
+
+.card-expiry-text {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
-  line-height: 1.35;
-}
-
-.inventory-card .info-strip span {
-  display: inline-flex;
-  min-height: 0;
-  padding: 0;
-  border-radius: 0;
-  color: inherit;
-  background: transparent;
-  font-size: inherit;
-  font-weight: inherit;
-}
-
-.inventory-card .expiry-line {
-  margin: 0 0 4px;
-  color: var(--ink-weak);
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.row-badges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 4px;
 }
 
 .inventory-card .pill,
 .inventory-card .status-pill {
-  min-height: 22px;
-  padding: 0 7px;
+  min-height: 20px;
+  padding: 0 6px;
   font-size: 11px;
 }
 
+.card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
 .quantity-readout {
-  grid-column: 1 / -1;
   display: inline-flex;
   align-items: baseline;
-  justify-content: flex-start;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
-  padding-top: 2px;
 }
 
 .quantity-readout strong {
   color: var(--ink);
-  font-size: 32px;
-  line-height: 0.95;
-  letter-spacing: 0;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.5px;
 }
 
 .quantity-readout span {
@@ -1295,30 +1295,33 @@ dialog::backdrop {
   font-weight: 900;
 }
 
-.card-actions {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.card-qty-actions {
+  display: flex;
   gap: 6px;
-  margin-top: 2px;
+  flex-shrink: 0;
 }
 
-.card-actions button {
-  min-width: 48px;
-  min-height: 36px;
-  padding: 0 8px;
-  font-size: 13px;
+.card-qty-actions button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.inventory-card .item-meta {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 0 0 4px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.35;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+.card-qty-actions button[data-action="minus1"] {
+  background: var(--surface-muted);
+  color: var(--ink-weak);
+}
+
+.card-qty-actions button[data-action="plus1"] {
+  background: var(--cool-soft);
+  color: var(--cool);
 }
 
 .detail-editor {
@@ -1464,34 +1467,18 @@ dialog::backdrop {
   }
 
   .inventory-list {
-    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
     gap: 10px;
   }
 
-  .inventory-card {
-    grid-template-columns: 64px minmax(0, 1fr);
-    gap: 9px;
-    min-height: auto;
-    padding: 10px;
-  }
-
-  .list-thumb {
-    width: 64px;
-    height: 64px;
-  }
-
-  .quantity-readout {
-    grid-column: 1 / -1;
-    justify-items: start;
-  }
-
   .quantity-readout strong {
-    font-size: 30px;
+    font-size: 24px;
   }
 
-  .card-actions {
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .card-qty-actions button {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
   }
 
   .detail-editor {
@@ -1558,11 +1545,10 @@ dialog::backdrop {
     padding: 10px;
   }
 
-  .inventory-card {
-    min-height: 276px;
+  .card-body {
+    padding: 8px 10px 10px;
   }
 
-  .card-actions,
   .use-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1620,12 +1606,8 @@ dialog::backdrop {
 }
 
 @media (max-width: 620px) {
-  .inventory-card {
-    min-height: auto;
-    padding: 14px;
-  }
-
-  .card-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .inventory-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 }

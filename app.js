@@ -629,60 +629,49 @@ function categoryRank(category) {
 }
 
 function inventoryCard(group) {
-  const thumbnail = group.thumbnail
-    ? thumb({ name: group.name, thumbnail: group.thumbnail })
-    : `<div class="list-thumb-placeholder">사진 없음</div>`;
-  const cardMeta = [
-    group.lots.length > 1 ? `${group.lots.length}묶음` : "",
-    group.lots[0]?.notes ? escapeHtml(group.lots[0].notes) : ""
-  ].filter(Boolean).join(" · ");
-  const cardBadges = [
-    ["expired", "soon", "week", "consumed"].includes(group.status.type) ? statusPill(group.status) : "",
-    group.lots.length > 1 ? `<span class="pill">${group.lots.length}묶음</span>` : ""
-  ].filter(Boolean).join("");
+  const imgHtml = group.thumbnail
+    ? `<img class="card-thumb-img" src="${escapeHtml(group.thumbnail)}" alt="" loading="lazy">`
+    : `<div class="card-thumb-fallback">${escapeHtml([...group.name][0] || "재")}</div>`;
+
+  const expiryBadge = ["expired", "soon", "week"].includes(group.status.type) ? statusPill(group.status) : "";
 
   return `
-    <article class="inventory-card">
-      <button class="list-thumb" data-detail="${group.key}" type="button" aria-label="${escapeHtml(group.name)} 사진과 상세 보기">
-        ${thumbnail}
-      </button>
-      <div class="inventory-main">
-        <div>
-          <h3>${escapeHtml(group.name)}</h3>
-          <div class="info-strip">
-            <span>${escapeHtml(group.category)}</span>
-            <span>${escapeHtml(group.storage)}</span>
+    <article class="inventory-card${group.consumed ? " is-consumed" : ""}">
+      <div class="card-top">
+        ${imgHtml}
+        <button class="card-menu-btn" data-detail="${group.key}" type="button" aria-label="${escapeHtml(group.name)} 상세 보기">···</button>
+      </div>
+      <div class="card-body">
+        <h3 class="card-name">${escapeHtml(group.name)}</h3>
+        <div class="card-expiry-row">
+          <span class="card-expiry-text">${expiryCaption(group)}</span>
+          ${expiryBadge}
+        </div>
+        <div class="card-bottom">
+          <div class="quantity-readout">
+            <strong data-quantity-readout="${group.key}">${Number(group.quantity).toLocaleString("ko-KR")}</strong>
+            <span>${escapeHtml(group.unit || "개")}</span>
           </div>
-          <p class="expiry-line">${expiryCaption(group)}</p>
-          ${cardMeta ? `<p class="item-meta">${cardMeta}</p>` : ""}
-          ${cardBadges ? `<div class="row-badges">${cardBadges}</div>` : ""}
+          ${group.consumed ? consumedCardActions(group) : activeCardActions(group)}
         </div>
       </div>
-      <div class="quantity-readout">
-        <strong data-quantity-readout="${group.key}">${Number(group.quantity).toLocaleString("ko-KR")}</strong>
-        <span>${escapeHtml(group.unit || "개")}</span>
-      </div>
-      ${group.consumed ? consumedCardActions(group) : activeCardActions(group)}
     </article>
   `;
 }
 
 function activeCardActions(group) {
   return `
-    <div class="card-actions">
-      <button data-quick="${group.key}" data-action="minus1" type="button">-1</button>
-      <button data-quick="${group.key}" data-action="plus1" type="button">+1</button>
-      <button data-detail="${group.key}" type="button">상세</button>
+    <div class="card-qty-actions">
+      <button data-quick="${group.key}" data-action="minus1" type="button" aria-label="1 빼기">−</button>
+      <button data-quick="${group.key}" data-action="plus1" type="button" aria-label="1 더하기">+</button>
     </div>
   `;
 }
 
 function consumedCardActions(group) {
   return `
-    <div class="card-actions">
-      <button data-quick="${group.key}" data-action="plus1" type="button">+1</button>
-      <button data-detail="${group.key}" type="button">상세</button>
-      <button data-shopping="${group.key}" type="button">다시 살 것</button>
+    <div class="card-qty-actions">
+      <button data-quick="${group.key}" data-action="plus1" type="button" aria-label="1 더하기">+</button>
     </div>
   `;
 }
