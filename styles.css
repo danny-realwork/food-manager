@@ -421,9 +421,12 @@ h3 {
 
 .activity-item,
 .change-item,
-.candidate-item,
-.lot-row {
+.candidate-item {
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.lot-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .thumb,
@@ -517,7 +520,38 @@ h3 {
   box-shadow: var(--shadow-soft);
 }
 
-.inventory-grid,
+.inventory-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+.inventory-category {
+  display: grid;
+  gap: 12px;
+}
+
+.category-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.category-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.category-card-grid,
 .use-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -717,6 +751,43 @@ dialog::backdrop {
   gap: 10px;
 }
 
+.lot-quantity-editor {
+  display: grid;
+  gap: 6px;
+  width: 150px;
+}
+
+.lot-quantity-editor > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lot-quantity-editor > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 0;
+  border-radius: var(--radius-button);
+  background: var(--surface-muted);
+}
+
+.lot-quantity-editor input {
+  height: 40px;
+  padding: 0 10px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.lot-quantity-editor em {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .lot-actions {
   display: flex;
   gap: 8px;
@@ -852,7 +923,7 @@ dialog::backdrop {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .inventory-grid,
+  .category-card-grid,
   .use-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
@@ -891,5 +962,19 @@ dialog::backdrop {
   .priority-item .status-pill {
     grid-column: 2;
     width: max-content;
+  }
+
+  .lot-row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .lot-quantity-editor {
+    width: 100%;
+  }
+
+  .lot-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

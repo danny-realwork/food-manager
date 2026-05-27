@@ -448,20 +448,12 @@ function renderInventory() {
     groups = groups.filter((group) => group.lots.some((lot) => lot.storage === storage));
   }
 
-  groups.sort((a, b) => {
-    if (sort === "name") return a.name.localeCompare(b.name, "ko");
-    if (sort === "recent") {
-      return newestTime(b.lots) - newestTime(a.lots);
-    }
-    return expiryTime(a.earliestExpiry) - expiryTime(b.earliestExpiry);
-  });
-
   if (!groups.length) {
     els.inventoryGrid.innerHTML = empty("조건에 맞는 재고가 없습니다");
     return;
   }
 
-  els.inventoryGrid.innerHTML = groups.map((group) => inventoryCard(group)).join("");
+  els.inventoryGrid.innerHTML = renderCategorySections(groups, sort);
 
   els.inventoryGrid.querySelectorAll("[data-detail]").forEach((button) => {
     button.addEventListener("click", () => openGroupDetail(button.dataset.detail));
@@ -478,6 +470,51 @@ function renderInventory() {
   els.inventoryGrid.querySelectorAll("[data-shopping]").forEach((button) => {
     button.addEventListener("click", () => addGroupToShopping(button.dataset.shopping));
   });
+}
+
+function renderCategorySections(groups, sort) {
+  return categorySections(groups, sort).map((section) => `
+    <section class="inventory-category">
+      <div class="category-head">
+        <h2>${escapeHtml(section.category)}</h2>
+        <span class="category-count">${section.groups.length}개</span>
+      </div>
+      <div class="category-card-grid">
+        ${section.groups.map((group) => inventoryCard(group)).join("")}
+      </div>
+    </section>
+  `).join("");
+}
+
+function categorySections(groups, sort) {
+  const sections = new Map();
+
+  groups.forEach((group) => {
+    const category = group.category || "기타";
+    if (!sections.has(category)) {
+      sections.set(category, []);
+    }
+    sections.get(category).push(group);
+  });
+
+  return Array.from(sections.entries())
+    .sort(([a], [b]) => categoryRank(a) - categoryRank(b) || a.localeCompare(b, "ko"))
+    .map(([category, categoryGroups]) => ({
+      category,
+      groups: categoryGroups.sort((a, b) => compareInventoryGroups(a, b, sort))
+    }));
+}
+
+function compareInventoryGroups(a, b, sort) {
+  if (sort === "name") return a.name.localeCompare(b.name, "ko");
+  if (sort === "recent") return newestTime(b.lots) - newestTime(a.lots);
+  return expiryTime(a.earliestExpiry) - expiryTime(b.earliestExpiry) || a.name.localeCompare(b.name, "ko");
+}
+
+function categoryRank(category) {
+  const order = ["식재료", "과일", "음료", "소스류", "간식", "건강식품", "기타"];
+  const index = order.indexOf(category);
+  return index >= 0 ? index : order.length;
 }
 
 function inventoryCard(group) {
@@ -502,10 +539,14 @@ function inventoryCard(group) {
 }
 
 function activeCardActions(group) {
+  const middleAction = group.quantity > 1
+    ? `<button data-detail="${group.key}" type="button">수량 수정</button>`
+    : `<button data-queue="${group.key}" data-action="low" type="button">얼마 안 남음</button>`;
+
   return `
     <div class="card-actions">
       <button data-queue="${group.key}" data-action="minus1" type="button">-1</button>
-      <button data-queue="${group.key}" data-action="low" type="button">얼마 안 남음</button>
+      ${middleAction}
       <button data-detail="${group.key}" type="button">상세</button>
     </div>
   `;
@@ -1028,7 +1069,15 @@ function openGroupDetail(groupKey) {
             <strong>${formatQuantity(lot)}</strong>
             <p class="lot-meta">${lot.storage} · ${lot.expiresAt ? formatDate(lot.expiresAt) : "기한 없음"}${lot.notes ? ` · ${escapeHtml(lot.notes)}` : ""}</p>
           </div>
+          <label class="lot-quantity-editor">
+            <span>남은 수량</span>
+            <div>
+              <input data-lot-input="${lot.id}" type="number" min="0" step="0.5" value="${Number(lot.quantity) || 0}">
+              <em>${escapeHtml(lot.unit || "개")}</em>
+            </div>
+          </label>
           <div class="lot-actions">
+            <button data-lot="${lot.id}" data-lot-action="set" type="button">저장</button>
             <button data-lot="${lot.id}" data-lot-action="minus1" type="button">-1</button>
             <button data-lot="${lot.id}" data-lot-action="all" type="button">소진</button>
             <button data-lot="${lot.id}" data-lot-action="undo" type="button">되돌리기</button>
@@ -1048,6 +1097,20 @@ function openGroupDetail(groupKey) {
 function handleLotAction(id, action) {
   const stock = inventory.find((candidate) => candidate.id === id);
   if (!stock) return;
+
+  if (action === "set") {
+    const input = els.dialogBody.querySelector(`[data-lot-input="${id}"]`);
+    const nextQuantity = Number(input?.value);
+    if (!Number.isFinite(nextQuantity) || nextQuantity < 0) {
+      toast("남은 수량을 0 이상으로 입력해주세요");
+      return;
+    }
+
+    const before = Number(stock.quantity) || 0;
+    stock.quantity = nextQuantity;
+    stock.status = nextQuantity > 0 ? "active" : "consumed";
+    recordActivity("수량 수정", `${stock.name}: ${before}${stock.unit} → ${stock.quantity}${stock.unit}`);
+  }
 
   if (action === "minus1") {
     const before = Number(stock.quantity) || 0;
