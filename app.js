@@ -1556,11 +1556,17 @@ function openGroupDetail(groupKey) {
               <span>단위</span>
               <input data-lot-unit="${lot.id}" value="${escapeHtml(lot.unit || "개")}" placeholder="개">
             </label>
-            <label>
+            <label class="lot-full">
+              <span>보관</span>
+              <select data-lot-storage="${lot.id}">
+                ${STORAGE_OPTIONS.map((s) => `<option ${s === lot.storage ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}
+              </select>
+            </label>
+            <label class="lot-full">
               <span>유통기한</span>
               <input data-lot-expiry="${lot.id}" type="date" value="${escapeHtml(lot.expiresAt || "")}">
             </label>
-            <label>
+            <label class="lot-full">
               <span>메모</span>
               <input data-lot-notes="${lot.id}" value="${escapeHtml(lot.notes || "")}" placeholder="구성, 구매처 등">
             </label>
@@ -1602,10 +1608,12 @@ function saveGroupDetail(groupKey) {
   for (const stock of lots) {
     const quantityInput = els.dialogBody.querySelector(`[data-lot-input="${stock.id}"]`);
     const unitInput = els.dialogBody.querySelector(`[data-lot-unit="${stock.id}"]`);
+    const storageInput = els.dialogBody.querySelector(`[data-lot-storage="${stock.id}"]`);
     const expiryInput = els.dialogBody.querySelector(`[data-lot-expiry="${stock.id}"]`);
     const notesInput = els.dialogBody.querySelector(`[data-lot-notes="${stock.id}"]`);
     const nextQuantity = Number(quantityInput?.value);
     const nextUnit = unitInput?.value.trim() || "개";
+    const nextStorage = normalizeStorage(storageInput?.value);
     const nextExpiry = expiryInput?.value || "";
     const nextNotes = notesInput?.value.trim() || "";
 
@@ -1621,6 +1629,7 @@ function saveGroupDetail(groupKey) {
     stock.name = nextName;
     stock.quantity = nextQuantity;
     stock.unit = nextUnit;
+    stock.storage = nextStorage;
     stock.expiresAt = nextExpiry || null;
     stock.notes = nextNotes;
     stock.status = nextQuantity > 0 ? "active" : "consumed";

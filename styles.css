@@ -999,8 +999,13 @@ dialog::backdrop {
   font-size: 12px;
 }
 
-.detail-lot-fields input {
+.detail-lot-fields input,
+.detail-lot-fields select {
   height: 42px;
+}
+
+.lot-full {
+  grid-column: 1 / -1;
 }
 
 .lot-actions {
@@ -1270,13 +1275,19 @@ dialog::backdrop {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .card-expiry-text {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inventory-card .pill,
