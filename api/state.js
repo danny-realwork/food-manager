@@ -49,7 +49,8 @@ async function writeState(state) {
     const { put } = await import("@vercel/blob");
     await put(blobPathname, JSON.stringify(state), {
       access: "public",
-      allowOverwrite: true
+      allowOverwrite: true,
+      cacheControlMaxAge: 0
     });
     return;
   }

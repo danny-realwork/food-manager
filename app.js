@@ -269,7 +269,7 @@ async function fetchRemoteState() {
   try {
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 8000);
-    const response = await fetch("/api/state", { signal: controller.signal });
+    const response = await fetch(`/api/state?t=${Date.now()}`, { signal: controller.signal, cache: "no-store" });
     window.clearTimeout(timer);
     if (!response.ok) return null;
     return await response.json();
@@ -1764,7 +1764,7 @@ function exportMarkdown() {
     .map((stock) => `| ${stock.name} | ${stock.category} | ${stock.quantity} | ${stock.unit} | ${stock.storage} | ${stock.expiresAt || ""} | ${stock.notes || ""} |`);
 
   const markdown = [
-    "# 우리집 재고판",
+    "# 상수집 식재료관리",
     "",
     `업데이트: ${new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date())}`,
     "",
@@ -1777,7 +1777,7 @@ function exportMarkdown() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "우리집-재고판.md";
+  a.download = "상수집-식재료관리.md";
   a.click();
   URL.revokeObjectURL(url);
 }

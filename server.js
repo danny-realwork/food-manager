@@ -59,7 +59,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`우리집 재고판: http://localhost:${port}`);
+  console.log(`상수집 식재료관리: http://localhost:${port}`);
 });
 
 function ensureStateFile() {
