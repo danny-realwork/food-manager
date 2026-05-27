@@ -1,0 +1,1252 @@
+const STORAGE_KEY = "homeInventory:v1";
+const ACTIVITY_KEY = "homeInventory:activity:v1";
+const USER_KEY = "homeInventory:user:v1";
+const SHOPPING_KEY = "homeInventory:shopping:v1";
+
+const today = new Date("2026-05-27T09:00:00+09:00");
+const oneDay = 24 * 60 * 60 * 1000;
+
+const seedItems = [
+  item("삶은계란", "식재료", 1, "개", "냉장", null),
+  item("수란", "식재료", 1, "개", "냉장", null),
+  item("아보카도", "식재료", 1, "개", "냉장", null),
+  item("날계란", "식재료", 70, "알", "냉장", null, "10알 + 2판"),
+  item("슬라이스 치즈", "식재료", 1, "팩", "냉장", null),
+  item("부침가루", "식재료", 1, "개", "실온", "2027-03-11"),
+  item("새우", "식재료", 1, "봉지", "냉동", null),
+  item("참치", "식재료", 7, "개", "실온", "2028-10-21"),
+  item("스팸", "식재료", 9, "개", "실온", "2028-10-23"),
+  item("잇츠팜", "식재료", 3, "개", "실온", "2028-01-21"),
+  item("제첩국", "식재료", 1, "개", "냉동", null),
+  item("카레", "식재료", 1, "개", "냉동", null),
+  item("카레가루", "식재료", 1, "개", "실온", null),
+  item("봉지김", "식재료", 6, "개", "실온", "2027-01-23"),
+  item("삼양라면", "식재료", 10, "봉", "실온", null),
+  item("신라면 컵", "식재료", 6, "개", "실온", "2026-08-09"),
+  item("진라면 컵", "식재료", 1, "개", "실온", "2025-09-24"),
+  item("사골농축액", "식재료", 1, "개", "실온", "2026-05-21"),
+  item("햇반", "식재료", 3, "개", "실온", "2026-06-23"),
+  item("스파게티면", "식재료", 2, "봉", "실온", "2028-09-10"),
+  item("즉석 된장국", "식재료", 12, "개", "실온", null, "일본"),
+  item("블루베리잼", "소스류", 1, "개", "냉장", "2026-05-30"),
+  item("마늘칩", "식재료", 2, "통", "실온", "2027-04-06"),
+  item("드링킹 요구르트 베리믹스", "음료", 1, "개", "냉장", null),
+  item("두유", "음료", 8, "팩", "실온", null),
+  item("토레타", "음료", 1, "개", "냉장", null),
+  item("우유", "음료", 2, "통", "냉장", null),
+  item("테이크핏", "건강식품", 1, "개", "건강", null),
+  item("망고", "과일", 1, "알", "냉장", null),
+  item("사과", "과일", 1, "알", "냉장", null),
+  item("방울토마토", "과일", 1, "박스", "냉장", null),
+  item("바나나", "과일", 2, "개", "실온", null),
+  item("참외", "과일", 10, "알", "냉장", null),
+  item("돈까스 소스", "소스류", 1, "개", "냉장", "2026-06-10"),
+  item("스테이크 소스", "소스류", 1, "개", "냉장", "2027-09-11"),
+  item("볶음깨", "소스류", 1, "개", "실온", null),
+  item("와사비", "소스류", 1, "개", "냉장", "2026-11-30"),
+  item("머스타드", "소스류", 1, "개", "냉장", "2026-03-05"),
+  item("초고추장", "소스류", 1, "개", "냉장", "2027-06-08"),
+  item("초고추장2", "소스류", 1, "개", "냉장", "2026-09-18"),
+  item("카스테라", "간식", 2, "조각", "실온", null),
+  item("너츠", "간식", 1, "개", "실온", null),
+  item("하루견과", "간식", 1, "개", "실온", "2026-02-26"),
+  item("밀크 카라멜", "간식", 1, "개", "실온", "2026-11-30", "스누피"),
+  item("초콜렛", "간식", 1, "개", "실온", "2026-05-13", "스벅 하트틴"),
+  item("솔라C 젤리", "간식", 8, "개", "실온", "2026-11-20"),
+  item("단백바", "간식", 3, "개", "실온", "2026-08-19"),
+  item("일본캔디", "간식", 1, "봉", "실온", "2027-04-01", "용각산"),
+  item("일본 봉지과자", "간식", 3, "개", "실온", null),
+  item("비타민C", "건강식품", 1, "개", "건강", null, "메가도스C 포함"),
+  item("비타민D", "건강식품", 1, "개", "건강", null),
+  item("매일만나", "건강식품", 60, "봉", "건강", null),
+  item("프로바이오틱스", "건강식품", 1, "개", "건강", null),
+  item("엔도카드", "건강식품", 1, "개", "건강", null, "식전 위보호제"),
+  item("흑마늘", "건강식품", 1, "개", "건강", null),
+  item("밀크시슬", "건강식품", 1, "개", "건강", null),
+  item("MSM", "건강식품", 1, "개", "건강", null),
+  item("아연", "건강식품", 1, "개", "건강", null),
+  item("홍삼기보", "건강식품", 2, "박스", "건강", "2026-12-18"),
+  item("오메가3", "건강식품", 1, "개", "건강", null),
+  item("에비오스", "건강식품", 1, "개", "건강", null, "맥주효모"),
+  item("숙면보조제", "건강식품", 1, "개", "건강", null)
+];
+
+let inventory = [];
+let activities = [];
+let shopping = [];
+let pendingChanges = [];
+let receiptCandidates = [];
+let addPhotoData = "";
+let receiptPhotoData = "";
+let remoteAvailable = false;
+let saveTimer = 0;
+
+const els = {};
+
+document.addEventListener("DOMContentLoaded", async () => {
+  cacheEls();
+  bindEvents();
+  initializeUi();
+  await initializeState();
+  renderAll();
+});
+
+function item(name, category, quantity, unit, storage, expiresAt, notes = "") {
+  return {
+    id: crypto.randomUUID(),
+    name,
+    category,
+    quantity,
+    unit,
+    storage,
+    expiresAt,
+    notes,
+    thumbnail: "",
+    status: "active",
+    addedBy: "Danny",
+    createdAt: "2026-05-26T22:06:00+09:00",
+    updatedAt: "2026-05-26T22:06:00+09:00"
+  };
+}
+
+function cacheEls() {
+  document.querySelectorAll("[id]").forEach((node) => {
+    els[node.id] = node;
+  });
+}
+
+function bindEvents() {
+  document.querySelectorAll("[data-route]").forEach((button) => {
+    button.addEventListener("click", () => setRoute(button.dataset.route));
+  });
+
+  document.querySelectorAll("[data-jump]").forEach((button) => {
+    button.addEventListener("click", () => setRoute(button.dataset.jump));
+  });
+
+  els.currentUser.value = localStorage.getItem(USER_KEY) || "Danny";
+  els.currentUser.addEventListener("change", () => {
+    localStorage.setItem(USER_KEY, els.currentUser.value);
+    toast(`${els.currentUser.value}로 기록합니다`);
+  });
+
+  [els.searchInput, els.storageFilter, els.statusFilter, els.sortFilter, els.useSearchInput].forEach((input) => {
+    input.addEventListener("input", renderAll);
+  });
+
+  els.photoInput.addEventListener("change", (event) => readImage(event, "add"));
+  els.receiptInput.addEventListener("change", (event) => readImage(event, "receipt"));
+  els.addForm.addEventListener("submit", saveNewItem);
+  els.resetAddButton.addEventListener("click", resetAddForm);
+
+  els.voiceButton.addEventListener("click", startVoice);
+  els.analyzeVoiceButton.addEventListener("click", () => {
+    queueVoiceChanges(els.voiceText.value);
+  });
+  els.clearUseButton.addEventListener("click", clearPendingChanges);
+  els.applyChangesButton.addEventListener("click", applyPendingChanges);
+
+  els.parseReceiptButton.addEventListener("click", parseReceipt);
+  els.addCandidatesButton.addEventListener("click", addSelectedCandidates);
+  els.exportButton.addEventListener("click", exportMarkdown);
+  els.clearActivityButton.addEventListener("click", () => {
+    activities = [];
+    saveState();
+    renderActivity();
+  });
+}
+
+function initializeUi() {
+  const formatter = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long"
+  });
+  els.todayLabel.textContent = formatter.format(today);
+}
+
+async function initializeState() {
+  inventory = loadInventory();
+  activities = loadJson(ACTIVITY_KEY, []);
+  shopping = loadJson(SHOPPING_KEY, []);
+
+  const remote = await fetchRemoteState();
+  if (!remote) return;
+
+  remoteAvailable = true;
+  if (Array.isArray(remote.inventory) && remote.inventory.length) {
+    inventory = remote.inventory;
+    activities = Array.isArray(remote.activities) ? remote.activities : [];
+    shopping = Array.isArray(remote.shopping) ? remote.shopping : [];
+    persistLocalState();
+    return;
+  }
+
+  saveState();
+}
+
+function loadInventory() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seedItems));
+    return structuredClone(seedItems);
+  }
+
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return structuredClone(seedItems);
+  }
+}
+
+function loadJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function saveInventory() {
+  saveState();
+}
+
+async function fetchRemoteState() {
+  try {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 800);
+    const response = await fetch("/api/state", { signal: controller.signal });
+    window.clearTimeout(timer);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function persistLocalState() {
+  saveJson(STORAGE_KEY, inventory);
+  saveJson(ACTIVITY_KEY, activities);
+  saveJson(SHOPPING_KEY, shopping);
+}
+
+function saveState() {
+  persistLocalState();
+  if (!remoteAvailable) return;
+
+  window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    fetch("/api/state", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inventory, activities, shopping })
+    }).catch(() => {
+      remoteAvailable = false;
+      toast("공유 저장소 연결이 끊겼습니다");
+    });
+  }, 120);
+}
+
+function setRoute(route) {
+  const titleMap = {
+    home: "홈",
+    inventory: "재고",
+    add: "추가",
+    use: "사용",
+    inbox: "입고함"
+  };
+
+  document.querySelectorAll(".screen").forEach((screen) => {
+    screen.classList.toggle("is-active", screen.id === `screen-${route}`);
+  });
+
+  document.querySelectorAll("[data-route]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.route === route);
+  });
+
+  els.pageTitle.textContent = titleMap[route] || "홈";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  renderAll();
+}
+
+function renderAll() {
+  renderSummary();
+  renderPriority();
+  renderRecent();
+  renderActivity();
+  renderInventory();
+  renderUseGrid();
+  renderChanges();
+  renderCandidates();
+}
+
+function activeItems() {
+  return inventory.filter(isActiveStock);
+}
+
+function isActiveStock(stock) {
+  return stock.status === "active" && Number(stock.quantity) > 0;
+}
+
+function isConsumedStock(stock) {
+  return stock.status === "consumed" || Number(stock.quantity) <= 0;
+}
+
+function groupItems(items = activeItems()) {
+  const map = new Map();
+
+  items.forEach((stock) => {
+    const key = normalize(stock.name);
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        name: stock.name,
+        category: stock.category,
+        storage: stock.storage,
+        lots: [],
+        quantity: 0,
+        unit: stock.unit,
+        thumbnail: stock.thumbnail || "",
+        earliestExpiry: null,
+        consumedEarliestExpiry: null
+      });
+    }
+
+    const group = map.get(key);
+    group.lots.push(stock);
+    group.quantity += Number(stock.quantity) || 0;
+    if (!group.thumbnail && stock.thumbnail) group.thumbnail = stock.thumbnail;
+    if (isActiveStock(stock)) {
+      group.earliestExpiry = earlierDate(group.earliestExpiry, stock.expiresAt);
+    } else {
+      group.consumedEarliestExpiry = earlierDate(group.consumedEarliestExpiry, stock.expiresAt);
+    }
+  });
+
+  return Array.from(map.values()).map((group) => {
+    group.lots.sort(compareLots);
+    group.activeLots = group.lots.filter(isActiveStock);
+    group.consumedLots = group.lots.filter(isConsumedStock);
+    group.consumed = group.activeLots.length === 0;
+    group.hasConsumed = group.consumedLots.length > 0;
+    group.status = group.consumed ? { type: "consumed", label: "소진" } : expiryStatus(group.earliestExpiry);
+    if (group.consumed && !group.earliestExpiry) {
+      group.earliestExpiry = group.consumedEarliestExpiry;
+    }
+    return group;
+  });
+}
+
+function compareLots(a, b) {
+  const aTime = a.expiresAt ? new Date(a.expiresAt).getTime() : Number.MAX_SAFE_INTEGER;
+  const bTime = b.expiresAt ? new Date(b.expiresAt).getTime() : Number.MAX_SAFE_INTEGER;
+  if (aTime !== bTime) return aTime - bTime;
+  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+}
+
+function earlierDate(current, candidate) {
+  if (!candidate) return current || null;
+  if (!current) return candidate;
+  return new Date(candidate) < new Date(current) ? candidate : current;
+}
+
+function renderSummary() {
+  const active = activeItems();
+  const statuses = active.map((stock) => expiryStatus(stock.expiresAt).type);
+  els.expiredCount.textContent = statuses.filter((status) => status === "expired").length;
+  els.weekCount.textContent = statuses.filter((status) => status === "soon" || status === "week").length;
+  els.activeCount.textContent = active.length;
+  els.shoppingCount.textContent = shopping.length;
+}
+
+function renderPriority() {
+  const priority = activeItems()
+    .filter((stock) => stock.expiresAt)
+    .map((stock) => ({ stock, status: expiryStatus(stock.expiresAt) }))
+    .filter(({ status }) => ["expired", "soon", "week"].includes(status.type))
+    .sort((a, b) => new Date(a.stock.expiresAt) - new Date(b.stock.expiresAt))
+    .slice(0, 8);
+
+  if (!priority.length) {
+    els.priorityList.innerHTML = empty("임박한 재고가 없습니다");
+    return;
+  }
+
+  els.priorityList.innerHTML = priority.map(({ stock, status }) => `
+    <article class="priority-item">
+      ${thumb(stock)}
+      <div>
+        <h3>${escapeHtml(stock.name)}</h3>
+        <p class="item-meta">${formatQuantity(stock)} · ${stock.storage} · ${formatDate(stock.expiresAt)}</p>
+      </div>
+      ${statusPill(status)}
+    </article>
+  `).join("");
+}
+
+function renderRecent() {
+  const recent = activeItems()
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 6);
+
+  if (!recent.length) {
+    els.recentGrid.innerHTML = empty("재고가 없습니다");
+    return;
+  }
+
+  els.recentGrid.innerHTML = recent.map((stock) => `
+    <article class="mini-card">
+      ${thumb(stock)}
+      <div class="mini-card-body">
+        <h3>${escapeHtml(stock.name)}</h3>
+        <p class="item-meta">${formatQuantity(stock)}</p>
+      </div>
+    </article>
+  `).join("");
+}
+
+function renderActivity() {
+  if (!activities.length) {
+    els.activityList.innerHTML = empty("변경 기록이 없습니다");
+    return;
+  }
+
+  els.activityList.innerHTML = activities.slice(0, 12).map((activity) => `
+    <article class="activity-item">
+      <div>
+        <strong>${escapeHtml(activity.title)}</strong>
+        <p class="change-detail">${escapeHtml(activity.detail)}</p>
+      </div>
+      <span class="activity-time">${escapeHtml(activity.user)} · ${relativeTime(activity.at)}</span>
+    </article>
+  `).join("");
+}
+
+function renderInventory() {
+  const search = normalize(els.searchInput.value);
+  const storage = els.storageFilter.value;
+  const status = els.statusFilter.value;
+  const sort = els.sortFilter.value;
+
+  let source = inventory.filter((stock) => {
+    if (status === "consumed") return isConsumedStock(stock);
+    if (status === "all") return isActiveStock(stock) || isConsumedStock(stock);
+    return isActiveStock(stock);
+  });
+
+  let groups = groupItems(source);
+  if (search) {
+    groups = groups.filter((group) => normalize(group.name).includes(search));
+  }
+  if (storage !== "all") {
+    groups = groups.filter((group) => group.lots.some((lot) => lot.storage === storage));
+  }
+
+  groups.sort((a, b) => {
+    if (sort === "name") return a.name.localeCompare(b.name, "ko");
+    if (sort === "recent") {
+      return newestTime(b.lots) - newestTime(a.lots);
+    }
+    return expiryTime(a.earliestExpiry) - expiryTime(b.earliestExpiry);
+  });
+
+  if (!groups.length) {
+    els.inventoryGrid.innerHTML = empty("조건에 맞는 재고가 없습니다");
+    return;
+  }
+
+  els.inventoryGrid.innerHTML = groups.map((group) => inventoryCard(group)).join("");
+
+  els.inventoryGrid.querySelectorAll("[data-detail]").forEach((button) => {
+    button.addEventListener("click", () => openGroupDetail(button.dataset.detail));
+  });
+
+  els.inventoryGrid.querySelectorAll("[data-queue]").forEach((button) => {
+    queueManualChange(button.dataset.queue, button.dataset.action);
+  });
+
+  els.inventoryGrid.querySelectorAll("[data-restore]").forEach((button) => {
+    button.addEventListener("click", () => restoreFirstConsumed(button.dataset.restore));
+  });
+
+  els.inventoryGrid.querySelectorAll("[data-shopping]").forEach((button) => {
+    button.addEventListener("click", () => addGroupToShopping(button.dataset.shopping));
+  });
+}
+
+function inventoryCard(group) {
+  return `
+    <article class="inventory-card">
+      <div class="card-image">
+        ${group.thumbnail ? `<img class="thumb" src="${group.thumbnail}" alt="">` : fallbackThumb(group.name)}
+        <div class="card-badges">
+          ${statusPill(group.status)}
+          <span class="pill">${escapeHtml(group.storage)}</span>
+          ${group.lots.length > 1 ? `<span class="pill">${group.lots.length}묶음</span>` : ""}
+        </div>
+      </div>
+      <div>
+        <h3>${escapeHtml(group.name)}</h3>
+        <p class="item-meta">${group.consumed ? "소진됨" : formatGroupQuantity(group)} · ${group.category}</p>
+        <p class="item-meta">${expiryCaption(group)}</p>
+      </div>
+      ${group.consumed ? consumedCardActions(group) : activeCardActions(group)}
+    </article>
+  `;
+}
+
+function activeCardActions(group) {
+  return `
+    <div class="card-actions">
+      <button data-queue="${group.key}" data-action="minus1" type="button">-1</button>
+      <button data-queue="${group.key}" data-action="low" type="button">얼마 안 남음</button>
+      <button data-detail="${group.key}" type="button">상세</button>
+    </div>
+  `;
+}
+
+function consumedCardActions(group) {
+  return `
+    <div class="card-actions">
+      <button data-restore="${group.key}" type="button">되돌리기</button>
+      <button data-shopping="${group.key}" type="button">장보기</button>
+      <button data-detail="${group.key}" type="button">상세</button>
+    </div>
+  `;
+}
+
+function renderUseGrid() {
+  const search = normalize(els.useSearchInput.value);
+  let groups = groupItems();
+
+  if (search) {
+    groups = groups.filter((group) => normalize(group.name).includes(search));
+  }
+
+  groups.sort((a, b) => {
+    const statusRank = { expired: 0, soon: 1, week: 2, ok: 3, none: 4, consumed: 5 };
+    return statusRank[a.status.type] - statusRank[b.status.type] || a.name.localeCompare(b.name, "ko");
+  });
+
+  if (!groups.length) {
+    els.useGrid.innerHTML = empty("차감할 재고가 없습니다");
+    return;
+  }
+
+  els.useGrid.innerHTML = groups.map((group) => `
+    <article class="use-card">
+      <div>
+        <h3>${escapeHtml(group.name)}</h3>
+        <p class="item-meta">${formatGroupQuantity(group)} · ${group.storage}</p>
+      </div>
+      <div class="use-actions">
+        <button data-queue="${group.key}" data-action="minus1" type="button">-1</button>
+        <button data-queue="${group.key}" data-action="all" type="button">다 씀</button>
+        <button data-queue="${group.key}" data-action="low" type="button">얼마 안 남음</button>
+      </div>
+    </article>
+  `).join("");
+
+  els.useGrid.querySelectorAll("[data-queue]").forEach((button) => {
+    queueManualChange(button.dataset.queue, button.dataset.action);
+  });
+}
+
+function renderChanges() {
+  els.applyChangesButton.disabled = pendingChanges.length === 0;
+
+  if (!pendingChanges.length) {
+    els.changeList.innerHTML = empty("대기 중인 변경안이 없습니다");
+    return;
+  }
+
+  els.changeList.innerHTML = pendingChanges.map((change, index) => `
+    <article class="change-item">
+      <div>
+        <strong>${escapeHtml(change.name)}</strong>
+        <p class="change-detail">${escapeHtml(change.detail)}</p>
+      </div>
+      <button class="ghost-button" data-remove-change="${index}" type="button">삭제</button>
+    </article>
+  `).join("");
+
+  els.changeList.querySelectorAll("[data-remove-change]").forEach((button) => {
+    button.addEventListener("click", () => {
+      pendingChanges.splice(Number(button.dataset.removeChange), 1);
+      renderChanges();
+    });
+  });
+}
+
+function renderCandidates() {
+  els.addCandidatesButton.disabled = receiptCandidates.length === 0;
+
+  if (!receiptCandidates.length) {
+    els.candidateList.innerHTML = empty("입고 후보가 없습니다");
+    return;
+  }
+
+  els.candidateList.innerHTML = receiptCandidates.map((candidate, index) => `
+    <article class="candidate-item">
+      <div>
+        <label class="candidate-toggle">
+          <input data-candidate-check="${index}" type="checkbox" ${candidate.selected ? "checked" : ""}>
+          <span>${escapeHtml(candidate.name)}</span>
+        </label>
+        <p class="candidate-detail">${candidate.quantity}${escapeHtml(candidate.unit)} · ${escapeHtml(candidate.category)} · ${escapeHtml(candidate.storage)}</p>
+      </div>
+      <button class="ghost-button" data-edit-candidate="${index}" type="button">제외</button>
+    </article>
+  `).join("");
+
+  els.candidateList.querySelectorAll("[data-candidate-check]").forEach((input) => {
+    input.addEventListener("change", () => {
+      receiptCandidates[Number(input.dataset.candidateCheck)].selected = input.checked;
+    });
+  });
+
+  els.candidateList.querySelectorAll("[data-edit-candidate]").forEach((button) => {
+    button.addEventListener("click", () => {
+      receiptCandidates.splice(Number(button.dataset.editCandidate), 1);
+      renderCandidates();
+    });
+  });
+}
+
+function queueManualChange(groupKey, action) {
+  return () => {
+    const group = groupItems().find((candidate) => candidate.key === groupKey);
+    if (!group) return;
+    const lot = group.lots[0];
+
+    if (action === "minus1") {
+      pendingChanges.push({
+        type: "decrement",
+        itemId: lot.id,
+        name: group.name,
+        amount: 1,
+        detail: `${formatQuantity(lot)}에서 1${lot.unit || "개"} 차감`
+      });
+    }
+
+    if (action === "all") {
+      pendingChanges.push({
+        type: "consumeGroup",
+        groupKey,
+        name: group.name,
+        detail: `${formatGroupQuantity(group)} 전체 소진`
+      });
+    }
+
+    if (action === "low") {
+      pendingChanges.push({
+        type: "markLow",
+        groupKey,
+        name: group.name,
+        detail: "상태를 얼마 안 남음으로 표시"
+      });
+    }
+
+    setRoute("use");
+    renderChanges();
+    toast("변경안에 담았습니다");
+  };
+}
+
+function restoreFirstConsumed(groupKey) {
+  const stock = inventory.find((candidate) => normalize(candidate.name) === groupKey && isConsumedStock(candidate));
+  if (!stock) return;
+
+  stock.status = "active";
+  stock.quantity = Math.max(Number(stock.quantity) || 0, 1);
+  stock.updatedAt = new Date().toISOString();
+  saveInventory();
+  recordActivity("소진 되돌리기", `${stock.name}: 1${stock.unit || "개"}로 복구`);
+  renderAll();
+  toast("소진 항목을 되돌렸습니다");
+}
+
+function addGroupToShopping(groupKey) {
+  const group = groupItems(inventory.filter((stock) => normalize(stock.name) === groupKey)).at(0);
+  if (!group) return;
+
+  addShopping(group.name);
+  recordActivity("장보기 추가", `${group.name} 다시 사기`);
+  renderAll();
+  toast("장보기 후보에 담았습니다");
+}
+
+function queueVoiceChanges(text) {
+  const changes = parseUsageText(text);
+  if (!changes.length) {
+    toast("재고명과 수량을 찾지 못했습니다");
+    return;
+  }
+
+  pendingChanges = [...pendingChanges, ...changes];
+  renderChanges();
+  toast(`${changes.length}개 변경안을 만들었습니다`);
+}
+
+function parseUsageText(text) {
+  const source = normalizeSpeech(text);
+  if (!source) return [];
+
+  const groups = groupItems();
+  const changes = [];
+
+  groups.forEach((group) => {
+    const nameKey = normalizeSpeech(group.name);
+    const context = contextAroundName(source, nameKey);
+    if (!context) return;
+
+    const amount = findAmountNearName(source, nameKey);
+    const usedAll = /다썼|다씀|다먹|다먹었|소진|없어졌|끝났/.test(context);
+    const low = /조금|거의다|얼마안남|얼마안남았/.test(context);
+
+    if (low && !amount) {
+      changes.push({
+        type: "markLow",
+        groupKey: group.key,
+        name: group.name,
+        detail: "상태를 얼마 안 남음으로 표시"
+      });
+      return;
+    }
+
+    if (usedAll) {
+      changes.push({
+        type: "consumeGroup",
+        groupKey: group.key,
+        name: group.name,
+        detail: `${formatGroupQuantity(group)} 전체 소진`
+      });
+      return;
+    }
+
+    const quantity = amount || 1;
+    changes.push({
+      type: "decrement",
+      itemId: group.lots[0].id,
+      name: group.name,
+      amount: quantity,
+      detail: `${quantity}${group.unit || "개"} 차감`
+    });
+  });
+
+  return changes;
+}
+
+function contextAroundName(source, nameKey) {
+  const index = source.indexOf(nameKey);
+  if (index < 0) return "";
+  return source.slice(Math.max(0, index - 12), index + nameKey.length + 14);
+}
+
+function findAmountNearName(source, nameKey) {
+  const numbers = {
+    한: 1,
+    하나: 1,
+    일: 1,
+    두: 2,
+    둘: 2,
+    이: 2,
+    세: 3,
+    셋: 3,
+    삼: 3,
+    네: 4,
+    넷: 4,
+    사: 4,
+    다섯: 5,
+    오: 5,
+    여섯: 6,
+    육: 6,
+    일곱: 7,
+    칠: 7,
+    여덟: 8,
+    팔: 8,
+    아홉: 9,
+    구: 9,
+    열: 10,
+    십: 10
+  };
+  const numberToken = "(\\d+|하나|한|일|둘|두|이|셋|세|삼|넷|네|사|다섯|오|여섯|육|일곱|칠|여덟|팔|아홉|구|열|십)";
+  const unitToken = "(개|장|봉|팩|알|통|조각|캔|박스|구)?";
+  const escaped = escapeRegex(nameKey);
+  const after = new RegExp(`${escaped}.{0,8}${numberToken}\\s*${unitToken}`);
+  const before = new RegExp(`${numberToken}\\s*${unitToken}.{0,8}${escaped}`);
+  const match = source.match(after) || source.match(before);
+  if (!match) return null;
+  const token = match[1];
+  return Number(token) || numbers[token] || null;
+}
+
+function applyPendingChanges() {
+  if (!pendingChanges.length) return;
+
+  const applied = [];
+
+  pendingChanges.forEach((change) => {
+    if (change.type === "decrement") {
+      const stock = inventory.find((candidate) => candidate.id === change.itemId);
+      if (!stock || stock.status !== "active") return;
+      const before = Number(stock.quantity) || 0;
+      stock.quantity = Math.max(0, before - change.amount);
+      stock.updatedAt = new Date().toISOString();
+      if (stock.quantity <= 0) stock.status = "consumed";
+      applied.push(`${stock.name}: ${before}${stock.unit} → ${stock.quantity}${stock.unit}`);
+    }
+
+    if (change.type === "consumeGroup") {
+      const groupLots = inventory.filter((stock) => normalize(stock.name) === change.groupKey && stock.status === "active");
+      groupLots.forEach((stock) => {
+        stock.quantity = 0;
+        stock.status = "consumed";
+        stock.updatedAt = new Date().toISOString();
+      });
+      applied.push(`${change.name}: 소진`);
+      addShopping(change.name);
+    }
+
+    if (change.type === "markLow") {
+      inventory
+        .filter((stock) => normalize(stock.name) === change.groupKey && stock.status === "active")
+        .forEach((stock) => {
+          stock.notes = stock.notes ? `${stock.notes}, 얼마 안 남음` : "얼마 안 남음";
+          stock.updatedAt = new Date().toISOString();
+        });
+      applied.push(`${change.name}: 얼마 안 남음`);
+    }
+  });
+
+  saveInventory();
+  if (applied.length) {
+    recordActivity("재고 사용", applied.join(" · "));
+  }
+  pendingChanges = [];
+  renderAll();
+  toast("재고에 반영했습니다");
+}
+
+function clearPendingChanges() {
+  pendingChanges = [];
+  els.voiceText.value = "";
+  renderChanges();
+}
+
+function saveNewItem(event) {
+  event.preventDefault();
+
+  const newItem = {
+    id: crypto.randomUUID(),
+    name: els.itemName.value.trim(),
+    category: els.itemCategory.value,
+    quantity: Number(els.itemQuantity.value) || 1,
+    unit: els.itemUnit.value.trim() || "개",
+    storage: els.itemStorage.value,
+    expiresAt: els.itemExpiry.value || null,
+    notes: els.itemNotes.value.trim(),
+    thumbnail: addPhotoData,
+    status: "active",
+    addedBy: els.currentUser.value,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  inventory.push(newItem);
+  saveInventory();
+  recordActivity("재고 추가", `${newItem.name} ${formatQuantity(newItem)} · ${newItem.storage}`);
+  resetAddForm();
+  renderAll();
+  toast("재고에 추가했습니다");
+}
+
+function resetAddForm() {
+  els.addForm.reset();
+  els.itemQuantity.value = "1";
+  els.itemUnit.value = "개";
+  addPhotoData = "";
+  els.photoInput.value = "";
+  els.photoPreview.hidden = true;
+  els.photoPreview.removeAttribute("src");
+  els.photoPlaceholder.hidden = false;
+}
+
+function readImage(event, target) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (target === "add") {
+      addPhotoData = reader.result;
+      els.photoPreview.src = addPhotoData;
+      els.photoPreview.hidden = false;
+      els.photoPlaceholder.hidden = true;
+    } else {
+      receiptPhotoData = reader.result;
+      els.receiptPreview.src = receiptPhotoData;
+      els.receiptPreview.hidden = false;
+      els.receiptPlaceholder.hidden = true;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function startVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    toast("이 브라우저는 음성 인식을 지원하지 않습니다");
+    els.voiceText.focus();
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "ko-KR";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  els.voiceButton.textContent = "듣는 중";
+  els.voiceButton.disabled = true;
+
+  recognition.onresult = (event) => {
+    els.voiceText.value = event.results[0][0].transcript;
+    queueVoiceChanges(els.voiceText.value);
+  };
+
+  recognition.onerror = () => {
+    toast("음성을 다시 시도해주세요");
+  };
+
+  recognition.onend = () => {
+    els.voiceButton.textContent = "녹음";
+    els.voiceButton.disabled = false;
+  };
+
+  recognition.start();
+}
+
+function parseReceipt() {
+  const text = els.receiptText.value.trim();
+  if (!text) {
+    toast("구매 텍스트를 넣어주세요");
+    return;
+  }
+
+  receiptCandidates = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(parsePurchaseLine)
+    .filter(Boolean);
+
+  renderCandidates();
+  toast(`${receiptCandidates.length}개 후보를 찾았습니다`);
+}
+
+function parsePurchaseLine(line) {
+  const ignored = /(배송|주문|결제|총|할인|쿠팡|로켓|무료|원$|리뷰|교환|반품)/;
+  if (ignored.test(line) && !/\d+\s*(개|팩|봉|알|구|통|박스|캔|장)/.test(line)) return null;
+
+  const cleaned = line
+    .replace(/\[[^\]]+\]/g, "")
+    .replace(/\([^)]*원[^)]*\)/g, "")
+    .replace(/[0-9,]+원/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const match = cleaned.match(/(.+?)\s*(\d+)\s*(개|팩|봉|알|구|통|박스|캔|장|입|매|병)?\s*$/);
+  const name = match ? match[1].trim() : cleaned;
+  const quantity = match ? Number(match[2]) : 1;
+  const unit = match?.[3] || guessUnit(name);
+  const category = guessCategory(name);
+
+  if (!name || name.length < 2) return null;
+
+  return {
+    id: crypto.randomUUID(),
+    name: cleanProductName(name),
+    quantity,
+    unit,
+    category,
+    storage: guessStorage(name, category),
+    selected: category !== "기타",
+    thumbnail: ""
+  };
+}
+
+function addSelectedCandidates() {
+  const selected = receiptCandidates.filter((candidate) => candidate.selected);
+  if (!selected.length) {
+    toast("선택된 후보가 없습니다");
+    return;
+  }
+
+  const now = new Date().toISOString();
+  selected.forEach((candidate) => {
+    inventory.push({
+      id: crypto.randomUUID(),
+      name: candidate.name,
+      category: candidate.category,
+      quantity: candidate.quantity,
+      unit: candidate.unit,
+      storage: candidate.storage,
+      expiresAt: null,
+      notes: "구매내역 입고",
+      thumbnail: candidate.thumbnail || "",
+      status: "active",
+      addedBy: els.currentUser.value,
+      createdAt: now,
+      updatedAt: now
+    });
+  });
+
+  saveInventory();
+  recordActivity("구매 입고", selected.map((candidate) => `${candidate.name} ${candidate.quantity}${candidate.unit}`).join(" · "));
+  receiptCandidates = [];
+  els.receiptText.value = "";
+  renderAll();
+  toast("입고 후보를 재고에 반영했습니다");
+}
+
+function openGroupDetail(groupKey) {
+  const group = groupItems(inventory).find((candidate) => candidate.key === groupKey);
+  if (!group) return;
+
+  els.dialogTitle.textContent = group.name;
+  els.dialogBody.innerHTML = `
+    <div class="lot-list">
+      ${group.lots.map((lot) => `
+        <article class="lot-row">
+          <div>
+            <strong>${formatQuantity(lot)}</strong>
+            <p class="lot-meta">${lot.storage} · ${lot.expiresAt ? formatDate(lot.expiresAt) : "기한 없음"}${lot.notes ? ` · ${escapeHtml(lot.notes)}` : ""}</p>
+          </div>
+          <div class="lot-actions">
+            <button data-lot="${lot.id}" data-lot-action="minus1" type="button">-1</button>
+            <button data-lot="${lot.id}" data-lot-action="all" type="button">소진</button>
+            <button data-lot="${lot.id}" data-lot-action="undo" type="button">되돌리기</button>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+
+  els.dialogBody.querySelectorAll("[data-lot]").forEach((button) => {
+    button.addEventListener("click", () => handleLotAction(button.dataset.lot, button.dataset.lotAction));
+  });
+
+  els.itemDialog.showModal();
+}
+
+function handleLotAction(id, action) {
+  const stock = inventory.find((candidate) => candidate.id === id);
+  if (!stock) return;
+
+  if (action === "minus1") {
+    const before = Number(stock.quantity) || 0;
+    stock.quantity = Math.max(0, before - 1);
+    if (stock.quantity <= 0) stock.status = "consumed";
+    recordActivity("직접 수정", `${stock.name}: ${before}${stock.unit} → ${stock.quantity}${stock.unit}`);
+  }
+
+  if (action === "all") {
+    stock.quantity = 0;
+    stock.status = "consumed";
+    addShopping(stock.name);
+    recordActivity("소진 처리", `${stock.name} 소진`);
+  }
+
+  if (action === "undo") {
+    stock.status = "active";
+    stock.quantity = Math.max(Number(stock.quantity) || 0, 1);
+    recordActivity("되돌리기", `${stock.name} 활성화`);
+  }
+
+  stock.updatedAt = new Date().toISOString();
+  saveInventory();
+  els.itemDialog.close();
+  renderAll();
+}
+
+function exportMarkdown() {
+  const rows = activeItems()
+    .sort(compareLots)
+    .map((stock) => `| ${stock.name} | ${stock.category} | ${stock.quantity} | ${stock.unit} | ${stock.storage} | ${stock.expiresAt || ""} | ${stock.notes || ""} |`);
+
+  const markdown = [
+    "# 우리집 재고판",
+    "",
+    `업데이트: ${new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date())}`,
+    "",
+    "| 품목 | 카테고리 | 수량 | 단위 | 보관 | 유통기한 | 메모 |",
+    "|---|---:|---:|---|---|---|---|",
+    ...rows
+  ].join("\n");
+
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "우리집-재고판.md";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function addShopping(name) {
+  if (shopping.some((candidate) => normalize(candidate) === normalize(name))) return;
+  shopping.push(name);
+  saveState();
+}
+
+function recordActivity(title, detail) {
+  activities.unshift({
+    id: crypto.randomUUID(),
+    title,
+    detail,
+    user: els.currentUser?.value || localStorage.getItem(USER_KEY) || "Danny",
+    at: new Date().toISOString()
+  });
+  activities = activities.slice(0, 40);
+  saveState();
+}
+
+function expiryStatus(date) {
+  if (!date) return { type: "none", label: "기한 없음" };
+  const diff = Math.ceil((new Date(`${date}T00:00:00+09:00`) - startOfDay(today)) / oneDay);
+  if (diff < 0) return { type: "expired", label: `${Math.abs(diff)}일 지남` };
+  if (diff <= 3) return { type: "soon", label: `${diff}일 남음` };
+  if (diff <= 7) return { type: "week", label: `${diff}일 남음` };
+  return { type: "ok", label: "여유" };
+}
+
+function statusPill(status) {
+  return `<span class="status-pill ${status.type}">${status.label}</span>`;
+}
+
+function formatQuantity(stock) {
+  return `${Number(stock.quantity).toLocaleString("ko-KR")}${stock.unit || "개"}`;
+}
+
+function formatGroupQuantity(group) {
+  return `${Number(group.quantity).toLocaleString("ko-KR")}${group.unit || "개"}`;
+}
+
+function expiryCaption(group) {
+  if (group.consumed) {
+    return group.earliestExpiry ? `소진된 묶음 · 기한 ${formatDate(group.earliestExpiry)}` : "소진된 묶음";
+  }
+  return group.earliestExpiry ? `가장 빠른 기한 ${formatDate(group.earliestExpiry)}` : "유통기한 없음";
+}
+
+function formatDate(date) {
+  if (!date) return "";
+  return date.replaceAll("-", ".");
+}
+
+function expiryTime(date) {
+  return date ? new Date(date).getTime() : Number.MAX_SAFE_INTEGER;
+}
+
+function newestTime(lots) {
+  return Math.max(...lots.map((lot) => new Date(lot.createdAt).getTime()));
+}
+
+function thumb(stock) {
+  if (stock.thumbnail) return `<img class="thumb" src="${stock.thumbnail}" alt="">`;
+  return fallbackThumb(stock.name);
+}
+
+function fallbackThumb(name) {
+  const letter = [...name][0] || "재";
+  return `<div class="fallback-thumb" aria-hidden="true">${escapeHtml(letter)}</div>`;
+}
+
+function empty(message) {
+  return `<div class="empty-state">${escapeHtml(message)}</div>`;
+}
+
+function normalize(value) {
+  return String(value || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function normalizeSpeech(value) {
+  return normalize(value).replace(/[.,!?~]/g, "");
+}
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function relativeTime(iso) {
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "방금";
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function toast(message) {
+  els.toast.textContent = message;
+  els.toast.classList.add("is-visible");
+  window.clearTimeout(toast.timer);
+  toast.timer = window.setTimeout(() => {
+    els.toast.classList.remove("is-visible");
+  }, 2200);
+}
+
+function guessCategory(name) {
+  const value = normalize(name);
+  if (/(우유|두유|음료|토레타|요구르트|주스|커피|차|물)/.test(value)) return "음료";
+  if (/(사과|바나나|망고|참외|토마토|과일|딸기|포도|귤|오렌지)/.test(value)) return "과일";
+  if (/(소스|고추장|와사비|머스타드|잼|깨|드레싱|케첩|마요)/.test(value)) return "소스류";
+  if (/(과자|젤리|초콜|카라멜|견과|너츠|단백바|캔디|카스테라)/.test(value)) return "간식";
+  if (/(비타민|오메가|프로바이오틱|홍삼|밀크시슬|아연|msm|보조제)/.test(value)) return "건강식품";
+  if (/(계란|햇반|라면|참치|스팸|치즈|새우|카레|김|면|국|된장|가루|마늘)/.test(value)) return "식재료";
+  return "기타";
+}
+
+function guessStorage(name, category) {
+  const value = normalize(name);
+  if (category === "건강식품") return "건강";
+  if (/(냉동|새우|카레)/.test(value)) return "냉동";
+  if (/(우유|요구르트|계란|치즈|잼|소스|와사비|토마토|참외|망고|사과)/.test(value)) return "냉장";
+  return "실온";
+}
+
+function guessUnit(name) {
+  const value = normalize(name);
+  if (/계란|달걀/.test(value)) return "알";
+  if (/두유|우유|음료/.test(value)) return "팩";
+  if (/라면|과자|면/.test(value)) return "봉";
+  if (/햇반|참치|스팸/.test(value)) return "개";
+  return "개";
+}
+
+function cleanProductName(name) {
+  return name
+    .replace(/곰곰|쿠팡|로켓프레시|로켓배송|국내산|무료배송/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}

@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f2f4f6">
+    <title>우리집 재고판</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="side-nav" aria-label="주요 메뉴">
+        <div class="brand">
+          <span class="brand-mark">W</span>
+          <div>
+            <strong>우리집 재고판</strong>
+            <small>상수집</small>
+          </div>
+        </div>
+        <nav class="nav-list">
+          <button class="nav-item is-active" data-route="home" type="button">홈</button>
+          <button class="nav-item" data-route="inventory" type="button">재고</button>
+          <button class="nav-item" data-route="add" type="button">추가</button>
+          <button class="nav-item" data-route="use" type="button">사용</button>
+          <button class="nav-item" data-route="inbox" type="button">입고함</button>
+        </nav>
+        <div class="user-switch">
+          <label for="currentUser">사용자</label>
+          <select id="currentUser">
+            <option>Danny</option>
+            <option>동거인</option>
+          </select>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="todayLabel"></p>
+            <h1 id="pageTitle">홈</h1>
+          </div>
+          <div class="top-actions">
+            <button class="icon-button" id="exportButton" type="button" title="내보내기">내보내기</button>
+            <button class="primary-action" data-jump="add" type="button">사진 추가</button>
+          </div>
+        </header>
+
+        <section class="screen is-active" id="screen-home" aria-labelledby="pageTitle">
+          <div class="summary-grid">
+            <article class="metric danger">
+              <span>지난 항목</span>
+              <strong id="expiredCount">0</strong>
+            </article>
+            <article class="metric warn">
+              <span>7일 이내</span>
+              <strong id="weekCount">0</strong>
+            </article>
+            <article class="metric">
+              <span>활성 재고</span>
+              <strong id="activeCount">0</strong>
+            </article>
+            <article class="metric cool">
+              <span>장보기</span>
+              <strong id="shoppingCount">0</strong>
+            </article>
+          </div>
+
+          <div class="layout-two">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>먼저 먹을 것</h2>
+                <button class="ghost-button" data-jump="inventory" type="button">전체 보기</button>
+              </div>
+              <div class="priority-list" id="priorityList"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>최근 추가</h2>
+                <button class="ghost-button" data-jump="add" type="button">추가</button>
+              </div>
+              <div class="mini-grid" id="recentGrid"></div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>최근 변경</h2>
+              <button class="ghost-button" id="clearActivityButton" type="button">정리</button>
+            </div>
+            <div class="activity-list" id="activityList"></div>
+          </section>
+        </section>
+
+        <section class="screen" id="screen-inventory" aria-labelledby="pageTitle">
+          <div class="toolbar">
+            <label class="search-box">
+              <span>검색</span>
+              <input id="searchInput" type="search" placeholder="재료명">
+            </label>
+            <label>
+              <span>보관</span>
+              <select id="storageFilter">
+                <option value="all">전체</option>
+                <option value="냉장">냉장</option>
+                <option value="냉동">냉동</option>
+                <option value="실온">실온</option>
+                <option value="건강">건강</option>
+              </select>
+            </label>
+            <label>
+              <span>상태</span>
+              <select id="statusFilter">
+                <option value="active">활성만</option>
+                <option value="all">소진 포함</option>
+                <option value="consumed">소진만</option>
+              </select>
+            </label>
+            <label>
+              <span>정렬</span>
+              <select id="sortFilter">
+                <option value="expiry">임박순</option>
+                <option value="recent">최근추가순</option>
+                <option value="name">이름순</option>
+              </select>
+            </label>
+          </div>
+          <div class="inventory-grid" id="inventoryGrid"></div>
+        </section>
+
+        <section class="screen" id="screen-add" aria-labelledby="pageTitle">
+          <div class="edit-layout">
+            <section class="panel photo-panel">
+              <h2>사진</h2>
+              <label class="photo-drop" for="photoInput">
+                <input id="photoInput" type="file" accept="image/*" capture="environment">
+                <img id="photoPreview" alt="" hidden>
+                <span id="photoPlaceholder">촬영 또는 업로드</span>
+              </label>
+            </section>
+
+            <form class="panel item-form" id="addForm">
+              <h2>재료 정보</h2>
+              <div class="form-grid">
+                <label>
+                  <span>품목</span>
+                  <input id="itemName" required placeholder="예: 계란">
+                </label>
+                <label>
+                  <span>카테고리</span>
+                  <select id="itemCategory">
+                    <option>식재료</option>
+                    <option>음료</option>
+                    <option>과일</option>
+                    <option>소스류</option>
+                    <option>간식</option>
+                    <option>건강식품</option>
+                    <option>기타</option>
+                  </select>
+                </label>
+                <label>
+                  <span>수량</span>
+                  <input id="itemQuantity" type="number" min="0" step="0.5" value="1">
+                </label>
+                <label>
+                  <span>단위</span>
+                  <input id="itemUnit" placeholder="개" value="개">
+                </label>
+                <label>
+                  <span>보관</span>
+                  <select id="itemStorage">
+                    <option>냉장</option>
+                    <option>냉동</option>
+                    <option>실온</option>
+                    <option>건강</option>
+                  </select>
+                </label>
+                <label>
+                  <span>유통기한</span>
+                  <input id="itemExpiry" type="date">
+                </label>
+              </div>
+              <label>
+                <span>메모</span>
+                <textarea id="itemNotes" rows="3" placeholder="필요하면 남기기"></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="secondary-action" id="resetAddButton" type="button">비우기</button>
+                <button class="primary-action" type="submit">저장</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-use" aria-labelledby="pageTitle">
+          <div class="layout-two">
+            <section class="panel voice-panel">
+              <div class="panel-head">
+                <h2>말로 차감</h2>
+                <button class="primary-action" id="voiceButton" type="button">녹음</button>
+              </div>
+              <textarea id="voiceText" rows="5" placeholder="예: 계란 두 개 쓰고 햇반 하나 먹었어"></textarea>
+              <div class="form-actions">
+                <button class="secondary-action" id="analyzeVoiceButton" type="button">변경안 만들기</button>
+                <button class="ghost-button" id="clearUseButton" type="button">취소</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>변경안</h2>
+                <button class="primary-action" id="applyChangesButton" type="button">반영</button>
+              </div>
+              <div class="change-list" id="changeList"></div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>직접 차감</h2>
+              <label class="compact-search">
+                <span>검색</span>
+                <input id="useSearchInput" type="search" placeholder="재료명">
+              </label>
+            </div>
+            <div class="use-grid" id="useGrid"></div>
+          </section>
+        </section>
+
+        <section class="screen" id="screen-inbox" aria-labelledby="pageTitle">
+          <div class="edit-layout">
+            <section class="panel photo-panel">
+              <h2>구매 사진</h2>
+              <label class="photo-drop" for="receiptInput">
+                <input id="receiptInput" type="file" accept="image/*">
+                <img id="receiptPreview" alt="" hidden>
+                <span id="receiptPlaceholder">영수증 또는 주문 화면</span>
+              </label>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>구매 텍스트</h2>
+                <button class="secondary-action" id="parseReceiptButton" type="button">분석</button>
+              </div>
+              <textarea id="receiptText" rows="8" placeholder="예: 계란 30구&#10;두유 24팩&#10;햇반 12개"></textarea>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>입고 후보</h2>
+              <button class="primary-action" id="addCandidatesButton" type="button">재고 반영</button>
+            </div>
+            <div class="candidate-list" id="candidateList"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <nav class="bottom-nav" aria-label="모바일 메뉴">
+      <button class="nav-item is-active" data-route="home" type="button">홈</button>
+      <button class="nav-item" data-route="inventory" type="button">재고</button>
+      <button class="nav-item" data-route="add" type="button">추가</button>
+      <button class="nav-item" data-route="use" type="button">사용</button>
+      <button class="nav-item" data-route="inbox" type="button">입고함</button>
+    </nav>
+
+    <dialog id="itemDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="dialog-head">
+          <h2 id="dialogTitle"></h2>
+          <button class="icon-button" value="close" type="submit">닫기</button>
+        </div>
+        <div id="dialogBody"></div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
