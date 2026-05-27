@@ -48,7 +48,7 @@ async function writeState(state) {
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const { put } = await import("@vercel/blob");
     await put(blobPathname, JSON.stringify(state), {
-      access: "private",
+      access: "public",
       allowOverwrite: true
     });
     return;
@@ -63,16 +63,17 @@ async function writeState(state) {
 }
 
 async function readBlobState() {
-  const { get } = await import("@vercel/blob");
+  const { list } = await import("@vercel/blob");
 
   try {
-    const result = await get(blobPathname, { access: "private" });
-    if (!result || result.statusCode !== 200 || !result.stream) {
-      return emptyState();
-    }
+    const { blobs } = await list({ prefix: blobPathname });
+    const blob = blobs.find(b => b.pathname === blobPathname);
+    if (!blob) return emptyState();
 
-    const text = await streamToText(result.stream);
-    return JSON.parse(text);
+    const response = await fetch(blob.url);
+    if (!response.ok) return emptyState();
+
+    return await response.json();
   } catch {
     return emptyState();
   }
