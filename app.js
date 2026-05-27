@@ -137,6 +137,7 @@ function bindEvents() {
   });
 
   els.photoInput.addEventListener("change", (event) => readImage(event, "add"));
+  els.photoInputCamera.addEventListener("change", (event) => readImage(event, "add"));
   els.receiptInput.addEventListener("change", (event) => readImage(event, "receipt"));
   els.addForm.addEventListener("submit", saveNewItem);
   els.resetAddButton.addEventListener("click", resetAddForm);
@@ -397,7 +398,7 @@ function renderSummary() {
   const active = activeItems();
   const statuses = active.map((stock) => expiryStatus(stock.expiresAt).type);
   els.expiredCount.textContent = statuses.filter((status) => status === "expired").length;
-  els.weekCount.textContent = statuses.filter((status) => status === "soon" || status === "week").length;
+  els.weekCount.textContent = statuses.filter((status) => status === "soon").length;
   els.activeCount.textContent = active.length;
   els.shoppingCount.textContent = shopping.length;
 }
@@ -419,7 +420,7 @@ function renderPriority() {
   const priority = activeItems()
     .filter((stock) => stock.expiresAt)
     .map((stock) => ({ stock, status: expiryStatus(stock.expiresAt) }))
-    .filter(({ status }) => ["expired", "soon", "week"].includes(status.type))
+    .filter(({ status }) => ["expired", "soon"].includes(status.type))
     .sort((a, b) => new Date(a.stock.expiresAt) - new Date(b.stock.expiresAt))
     .slice(0, 8);
 
@@ -633,7 +634,7 @@ function inventoryCard(group) {
     ? `<img class="card-thumb-img" src="${escapeHtml(group.thumbnail)}" alt="" loading="lazy">`
     : `<div class="card-thumb-fallback">${escapeHtml([...group.name][0] || "재")}</div>`;
 
-  const expiryBadge = ["expired", "soon", "week"].includes(group.status.type) ? statusPill(group.status) : "";
+  const expiryBadge = group.status.type !== "none" && group.status.type !== "consumed" ? statusPill(group.status) : "";
 
   return `
     <article class="inventory-card${group.consumed ? " is-consumed" : ""}">
@@ -685,7 +686,7 @@ function renderUseGrid() {
   }
 
   groups.sort((a, b) => {
-    const statusRank = { expired: 0, soon: 1, week: 2, ok: 3, none: 4, consumed: 5 };
+    const statusRank = { expired: 0, soon: 1, ok: 2, none: 3, consumed: 4 };
     return statusRank[a.status.type] - statusRank[b.status.type] || a.name.localeCompare(b.name, "ko");
   });
 
@@ -1176,10 +1177,16 @@ function openAddDialog(draft = null) {
         <div class="dialog-photo-preview" data-add-photo-preview>
           ${dialogAddPhotoData ? `<img src="${escapeHtml(dialogAddPhotoData)}" alt="">` : `<span>사진 없음</span>`}
         </div>
-        <label class="dialog-photo-picker">
-          <input id="dialogItemPhoto" type="file" accept="image/*" capture="environment">
-          <span>사진 업로드</span>
-        </label>
+        <div class="dialog-photo-pickers">
+          <label class="dialog-photo-picker">
+            <input id="dialogItemPhoto" type="file" accept="image/*">
+            <span>갤러리</span>
+          </label>
+          <label class="dialog-photo-picker">
+            <input id="dialogItemPhotoCamera" type="file" accept="image/*" capture="environment">
+            <span>카메라</span>
+          </label>
+        </div>
       </div>
       <div class="form-actions">
         <button class="secondary-action" type="button" data-add-cancel>취소</button>
@@ -1190,6 +1197,7 @@ function openAddDialog(draft = null) {
 
   els.dialogBody.querySelector("#dialogAddForm").addEventListener("submit", showAddConfirmation);
   els.dialogBody.querySelector("#dialogItemPhoto").addEventListener("change", (event) => readDialogAddPhoto(event.target.files?.[0]));
+  els.dialogBody.querySelector("#dialogItemPhotoCamera").addEventListener("change", (event) => readDialogAddPhoto(event.target.files?.[0]));
   els.dialogBody.querySelector("[data-add-cancel]").addEventListener("click", () => els.itemDialog.close());
 
   if (!els.itemDialog.open) {
@@ -1519,8 +1527,12 @@ function openGroupDetail(groupKey) {
         ${group.thumbnail ? thumb({ name: group.name, thumbnail: group.thumbnail }) : `<div class="photo-empty">사진 없음</div>`}
         <div class="detail-photo-actions">
           <label>
-            <input data-group-photo="${group.key}" type="file" accept="image/*" capture="environment">
-            <span>사진 업로드</span>
+            <input data-group-photo="${group.key}" type="file" accept="image/*">
+            갤러리
+          </label>
+          <label>
+            <input data-group-photo-camera="${group.key}" type="file" accept="image/*" capture="environment">
+            카메라
           </label>
           <button data-clear-group-photo="${group.key}" type="button">사진 삭제</button>
         </div>
@@ -1552,6 +1564,9 @@ function openGroupDetail(groupKey) {
 
   els.dialogBody.querySelectorAll("[data-group-photo]").forEach((input) => {
     input.addEventListener("change", () => updateGroupPhoto(input.dataset.groupPhoto, input.files?.[0]));
+  });
+  els.dialogBody.querySelectorAll("[data-group-photo-camera]").forEach((input) => {
+    input.addEventListener("change", () => updateGroupPhoto(input.dataset.groupPhotoCamera, input.files?.[0]));
   });
 
   els.dialogBody.querySelectorAll("[data-clear-group-photo]").forEach((button) => {
@@ -1765,12 +1780,11 @@ function setDialogSave(label, handler) {
 }
 
 function expiryStatus(date) {
-  if (!date) return { type: "none", label: "유통기한 없음" };
+  if (!date) return { type: "none", label: "" };
   const diff = Math.ceil((new Date(`${date}T00:00:00+09:00`) - startOfDay(today)) / oneDay);
   if (diff < 0) return { type: "expired", label: `${Math.abs(diff)}일 지남` };
-  if (diff <= 3) return { type: "soon", label: `${diff}일 남음` };
-  if (diff <= 7) return { type: "week", label: `${diff}일 남음` };
-  return { type: "ok", label: "여유" };
+  if (diff <= 30) return { type: "soon", label: `${diff}일 남음` };
+  return { type: "ok", label: `${diff}일 남음` };
 }
 
 function statusPill(status) {
@@ -1786,10 +1800,9 @@ function formatGroupQuantity(group) {
 }
 
 function expiryCaption(group) {
-  if (group.consumed) {
-    return group.earliestExpiry ? `유통기한 ${formatDate(group.earliestExpiry)}` : "유통기한 없음";
-  }
-  return group.earliestExpiry ? `유통기한 ${formatDate(group.earliestExpiry)}` : "유통기한 없음";
+  if (!group.earliestExpiry) return "유통기한 없음";
+  const [year, month, day] = group.earliestExpiry.split("-");
+  return `${year.slice(2)}.${month}.${day}까지`;
 }
 
 function formatDate(date) {

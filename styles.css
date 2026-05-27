@@ -514,21 +514,23 @@ h3 {
   background: rgba(242, 244, 246, 0.92);
 }
 
-.status-pill.expired,
-.status-pill.soon {
+.status-pill.expired {
   color: var(--danger);
   background: var(--danger-soft);
 }
 
-.status-pill.week {
+.status-pill.soon {
   color: #b76e00;
   background: var(--warn-soft);
 }
 
-.status-pill.ok,
+.status-pill.ok {
+  color: var(--cool);
+  background: var(--cool-soft);
+}
+
 .status-pill.none {
-  color: var(--brand);
-  background: var(--brand-soft);
+  display: none;
 }
 
 .status-pill.consumed {
@@ -635,30 +637,6 @@ h3 {
   box-shadow: var(--shadow);
 }
 
-.card-image {
-  position: relative;
-  overflow: hidden;
-  border-radius: 16px;
-  aspect-ratio: 4 / 3;
-  background: var(--surface-muted);
-}
-
-.card-image .thumb,
-.card-image .fallback-thumb {
-  width: 100%;
-  height: 100%;
-  border-radius: 0;
-}
-
-.card-badges {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
 
 .inventory-card h3,
 .use-card h3,
@@ -667,7 +645,6 @@ h3 {
   overflow-wrap: anywhere;
 }
 
-.card-actions,
 .use-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -682,7 +659,6 @@ h3 {
   margin-top: auto;
 }
 
-.card-actions button,
 .use-actions button,
 .candidate-actions button,
 .lot-actions button {
@@ -694,14 +670,12 @@ h3 {
   font-weight: 800;
 }
 
-.card-actions button[data-action="minus1"],
 .use-actions button[data-action="minus1"],
 .lot-actions button[data-lot-action="minus1"] {
   color: var(--brand);
   background: var(--brand-soft);
 }
 
-.card-actions button[data-action="plus1"],
 .use-actions button[data-action="plus1"],
 .lot-actions button[data-lot-action="plus1"] {
   color: var(--cool);
@@ -742,6 +716,44 @@ h3 {
   height: 100%;
   min-height: 340px;
   object-fit: cover;
+}
+
+.photo-pick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.photo-pick-btn {
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  border-radius: var(--radius-button);
+  background: var(--surface-muted);
+  color: var(--ink-weak);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+}
+
+.photo-pick-btn.camera {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.photo-pick-btn input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.dialog-photo-pickers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
 }
 
 .item-form {
@@ -1186,7 +1198,7 @@ dialog::backdrop {
 
 .card-top {
   position: relative;
-  aspect-ratio: 1;
+  height: 80px;
   background: var(--surface-muted);
   flex-shrink: 0;
 }
@@ -1204,7 +1216,7 @@ dialog::backdrop {
   width: 100%;
   height: 100%;
   color: var(--muted-weak);
-  font-size: 32px;
+  font-size: 22px;
   font-weight: 900;
 }
 
@@ -1362,7 +1374,12 @@ dialog::backdrop {
 
 .detail-photo-actions {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.detail-photo-actions button {
+  grid-column: 1 / -1;
 }
 
 .detail-photo-actions label,
