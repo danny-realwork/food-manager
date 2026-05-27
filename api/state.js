@@ -70,7 +70,7 @@ async function readBlobState() {
     const blob = blobs.find(b => b.pathname === blobPathname);
     if (!blob) return emptyState();
 
-    const response = await fetch(blob.url);
+    const response = await fetch(blob.url, { cache: "no-store" });
     if (!response.ok) return emptyState();
 
     return await response.json();

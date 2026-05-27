@@ -88,12 +88,13 @@ let saveTimer = 0;
 
 const els = {};
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   cacheEls();
   bindEvents();
   initializeUi();
-  await initializeState();
+  initializeState();
   renderAll();
+  syncWithRemote();
 });
 
 function item(name, category, quantity, unit, storage, expiresAt, notes = "") {
@@ -181,13 +182,15 @@ function initializeUi() {
   els.todayLabel.textContent = formatter.format(today);
 }
 
-async function initializeState() {
+function initializeState() {
   cleanupLegacyUserState();
   inventory = loadInventory();
   activities = normalizeActivityList(loadJson(ACTIVITY_KEY, []));
   shopping = loadJson(SHOPPING_KEY, []);
   persistLocalState();
+}
 
+async function syncWithRemote() {
   const remote = await fetchRemoteState();
   if (!remote) return;
 
@@ -197,6 +200,7 @@ async function initializeState() {
     activities = normalizeActivityList(remote.activities);
     shopping = Array.isArray(remote.shopping) ? remote.shopping : [];
     saveState();
+    renderAll();
     return;
   }
 
@@ -264,7 +268,7 @@ function saveInventory() {
 async function fetchRemoteState() {
   try {
     const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), 800);
+    const timer = window.setTimeout(() => controller.abort(), 8000);
     const response = await fetch("/api/state", { signal: controller.signal });
     window.clearTimeout(timer);
     if (!response.ok) return null;
