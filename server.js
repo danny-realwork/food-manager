@@ -23,12 +23,14 @@ ensureStateFile();
 
 const server = http.createServer(async (req, res) => {
   try {
-    if (req.url === "/api/state" && req.method === "GET") {
+    const pathname = req.url.split("?")[0];
+
+    if (pathname === "/api/state" && req.method === "GET") {
       sendJson(res, readState());
       return;
     }
 
-    if (req.url === "/api/state" && req.method === "PUT") {
+    if (pathname === "/api/state" && req.method === "PUT") {
       const body = await readBody(req);
       const state = JSON.parse(body || "{}");
       writeState({
@@ -40,7 +42,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.url === "/api/upload" && req.method === "POST") {
+    if (pathname === "/api/upload" && req.method === "POST") {
       const buffer = await readBinaryBody(req);
       const { randomUUID } = require("crypto");
       const filename = `${Date.now()}-${randomUUID().slice(0, 8)}.jpg`;

@@ -192,19 +192,80 @@ function initializeState() {
 
 async function syncWithRemote() {
   const remote = await fetchRemoteState();
-  if (!remote) return;
+  if (!remote) {
+    if (!inventory.length) {
+      inventory = structuredClone(seedItems);
+      persistLocalState();
+      renderAll();
+    }
+    return;
+  }
 
   remoteAvailable = true;
-  if (Array.isArray(remote.inventory) && remote.inventory.length) {
-    inventory = normalizeInventoryList(remote.inventory);
-    activities = normalizeActivityList(remote.activities);
-    shopping = Array.isArray(remote.shopping) ? remote.shopping : [];
+
+  const remoteInv = normalizeInventoryList(remote.inventory || []);
+  const remoteAct = normalizeActivityList(remote.activities || []);
+  const remoteShop = Array.isArray(remote.shopping) ? remote.shopping : [];
+
+  if (!inventory.length && !activities.length && !shopping.length
+      && !remoteInv.length && !remoteAct.length && !remoteShop.length) {
+    inventory = structuredClone(seedItems);
     saveState();
     renderAll();
     return;
   }
 
+  inventory = mergeInventoryByUpdated(inventory, remoteInv);
+  activities = mergeActivities(activities, remoteAct);
+  shopping = mergeShopping(shopping, remoteShop);
+
   saveState();
+  renderAll();
+}
+
+function mergeInventoryByUpdated(local, remote) {
+  const byId = new Map();
+  remote.forEach((item) => byId.set(item.id, item));
+  local.forEach((item) => {
+    const existing = byId.get(item.id);
+    if (!existing) {
+      byId.set(item.id, item);
+      return;
+    }
+    if (updatedTime(item.updatedAt) >= updatedTime(existing.updatedAt)) {
+      byId.set(item.id, item);
+    }
+  });
+  return Array.from(byId.values());
+}
+
+function mergeActivities(local, remote) {
+  const byId = new Map();
+  remote.forEach((a) => byId.set(a.id, a));
+  local.forEach((a) => {
+    if (!byId.has(a.id)) byId.set(a.id, a);
+  });
+  return Array.from(byId.values())
+    .sort((a, b) => updatedTime(b.at) - updatedTime(a.at))
+    .slice(0, 40);
+}
+
+function mergeShopping(local, remote) {
+  const seen = new Set();
+  const result = [];
+  for (const name of [...local, ...remote]) {
+    const key = normalize(name);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(name);
+  }
+  return result;
+}
+
+function updatedTime(iso) {
+  if (!iso) return 0;
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
 function cleanupLegacyUserState() {
@@ -213,20 +274,17 @@ function cleanupLegacyUserState() {
 
 function loadInventory() {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seedItems));
-    return structuredClone(seedItems);
-  }
+  if (!stored) return [];
 
   try {
     return normalizeInventoryList(JSON.parse(stored));
   } catch {
-    return structuredClone(seedItems);
+    return [];
   }
 }
 
 function normalizeInventoryList(items) {
-  if (!Array.isArray(items)) return structuredClone(seedItems);
+  if (!Array.isArray(items)) return [];
 
   return items.map((stock) => {
     const item = { ...stock };
@@ -288,17 +346,15 @@ function saveState() {
   persistLocalState();
   if (!remoteAvailable) return;
 
-  window.clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(() => {
-    fetch("/api/state", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inventory, activities, shopping })
-    }).catch(() => {
-      remoteAvailable = false;
-      toast("공유 저장소 연결이 끊겼습니다");
-    });
-  }, 120);
+  fetch("/api/state", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ inventory, activities, shopping }),
+    keepalive: true
+  }).catch(() => {
+    remoteAvailable = false;
+    toast("공유 저장소 연결이 끊겼습니다");
+  });
 }
 
 function setRoute(route) {
