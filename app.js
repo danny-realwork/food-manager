@@ -1556,6 +1556,14 @@ function openGroupDetail(groupKey) {
               <span>단위</span>
               <input data-lot-unit="${lot.id}" value="${escapeHtml(lot.unit || "개")}" placeholder="개">
             </label>
+            <label>
+              <span>유통기한</span>
+              <input data-lot-expiry="${lot.id}" type="date" value="${escapeHtml(lot.expiresAt || "")}">
+            </label>
+            <label>
+              <span>메모</span>
+              <input data-lot-notes="${lot.id}" value="${escapeHtml(lot.notes || "")}" placeholder="구성, 구매처 등">
+            </label>
           </div>
         </article>
       `).join("")}
@@ -1594,8 +1602,12 @@ function saveGroupDetail(groupKey) {
   for (const stock of lots) {
     const quantityInput = els.dialogBody.querySelector(`[data-lot-input="${stock.id}"]`);
     const unitInput = els.dialogBody.querySelector(`[data-lot-unit="${stock.id}"]`);
+    const expiryInput = els.dialogBody.querySelector(`[data-lot-expiry="${stock.id}"]`);
+    const notesInput = els.dialogBody.querySelector(`[data-lot-notes="${stock.id}"]`);
     const nextQuantity = Number(quantityInput?.value);
     const nextUnit = unitInput?.value.trim() || "개";
+    const nextExpiry = expiryInput?.value || "";
+    const nextNotes = notesInput?.value.trim() || "";
 
     if (!Number.isFinite(nextQuantity) || nextQuantity < 0 || !Number.isInteger(nextQuantity)) {
       toast("남은 수량은 0 이상의 정수로 입력해주세요");
@@ -1605,11 +1617,12 @@ function saveGroupDetail(groupKey) {
 
     if (stock.name !== nextName) updates.push(`${stock.name} → ${nextName}`);
     if (Number(stock.quantity) !== nextQuantity) updates.push(`${stock.name}: ${stock.quantity}${stock.unit || "개"} → ${nextQuantity}${nextUnit}`);
-    if ((stock.unit || "개") !== nextUnit) updates.push(`${stock.name}: 단위 ${stock.unit || "개"} → ${nextUnit}`);
 
     stock.name = nextName;
     stock.quantity = nextQuantity;
     stock.unit = nextUnit;
+    stock.expiresAt = nextExpiry || null;
+    stock.notes = nextNotes;
     stock.status = nextQuantity > 0 ? "active" : "consumed";
     stock.updatedAt = new Date().toISOString();
   }
