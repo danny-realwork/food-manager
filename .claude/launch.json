@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "상수집 식재료 앱",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js", "4174"],
+      "port": 4174
+    }
+  ]
+}

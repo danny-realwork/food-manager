@@ -5,7 +5,7 @@ const path = require("path");
 const root = __dirname;
 const dataDir = path.join(root, "data");
 const statePath = path.join(dataDir, "state.json");
-const port = Number(process.argv[2]) || 4173;
+const port = Number(process.env.PORT) || Number(process.argv[2]) || 4174;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",

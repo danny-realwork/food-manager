@@ -118,11 +118,20 @@
           <div class="edit-layout">
             <section class="panel photo-panel">
               <h2>사진</h2>
-              <label class="photo-drop" for="photoInput">
-                <input id="photoInput" type="file" accept="image/*" capture="environment">
+              <div class="photo-drop">
                 <img id="photoPreview" alt="" hidden>
-                <span id="photoPlaceholder">촬영 또는 업로드</span>
-              </label>
+                <span id="photoPlaceholder">사진 없음</span>
+              </div>
+              <div class="photo-pick-actions">
+                <label class="photo-pick-btn">
+                  <input id="photoInput" type="file" accept="image/*">
+                  갤러리
+                </label>
+                <label class="photo-pick-btn camera">
+                  <input id="photoInputCamera" type="file" accept="image/*" capture="environment">
+                  카메라
+                </label>
+              </div>
             </section>
 
             <form class="panel item-form" id="addForm">

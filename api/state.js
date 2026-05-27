@@ -100,21 +100,6 @@ function readRequestJson(req) {
   });
 }
 
-async function streamToText(stream) {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let text = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    text += decoder.decode(value, { stream: true });
-  }
-
-  text += decoder.decode();
-  return text;
-}
-
 function normalizeState(state) {
   return {
     inventory: Array.isArray(state.inventory) ? state.inventory : [],
