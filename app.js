@@ -1,10 +1,11 @@
 const STORAGE_KEY = "homeInventory:v1";
 const ACTIVITY_KEY = "homeInventory:activity:v1";
-const USER_KEY = "homeInventory:user:v1";
 const SHOPPING_KEY = "homeInventory:shopping:v1";
 
 const today = new Date("2026-05-27T09:00:00+09:00");
 const oneDay = 24 * 60 * 60 * 1000;
+const STORAGE_OPTIONS = ["냉장", "냉동", "실온"];
+const CATEGORY_OPTIONS = ["식재료", "과일", "음료", "소스류", "간식", "건강식품", "기타"];
 
 const seedItems = [
   item("삶은계란", "식재료", 1, "개", "냉장", null),
@@ -34,7 +35,7 @@ const seedItems = [
   item("두유", "음료", 8, "팩", "실온", null),
   item("토레타", "음료", 1, "개", "냉장", null),
   item("우유", "음료", 2, "통", "냉장", null),
-  item("테이크핏", "건강식품", 1, "개", "건강", null),
+  item("테이크핏", "건강식품", 1, "개", "실온", null),
   item("망고", "과일", 1, "알", "냉장", null),
   item("사과", "과일", 1, "알", "냉장", null),
   item("방울토마토", "과일", 1, "박스", "냉장", null),
@@ -56,19 +57,19 @@ const seedItems = [
   item("단백바", "간식", 3, "개", "실온", "2026-08-19"),
   item("일본캔디", "간식", 1, "봉", "실온", "2027-04-01", "용각산"),
   item("일본 봉지과자", "간식", 3, "개", "실온", null),
-  item("비타민C", "건강식품", 1, "개", "건강", null, "메가도스C 포함"),
-  item("비타민D", "건강식품", 1, "개", "건강", null),
-  item("매일만나", "건강식품", 60, "봉", "건강", null),
-  item("프로바이오틱스", "건강식품", 1, "개", "건강", null),
-  item("엔도카드", "건강식품", 1, "개", "건강", null, "식전 위보호제"),
-  item("흑마늘", "건강식품", 1, "개", "건강", null),
-  item("밀크시슬", "건강식품", 1, "개", "건강", null),
-  item("MSM", "건강식품", 1, "개", "건강", null),
-  item("아연", "건강식품", 1, "개", "건강", null),
-  item("홍삼기보", "건강식품", 2, "박스", "건강", "2026-12-18"),
-  item("오메가3", "건강식품", 1, "개", "건강", null),
-  item("에비오스", "건강식품", 1, "개", "건강", null, "맥주효모"),
-  item("숙면보조제", "건강식품", 1, "개", "건강", null)
+  item("비타민C", "건강식품", 1, "개", "실온", null, "메가도스C 포함"),
+  item("비타민D", "건강식품", 1, "개", "실온", null),
+  item("매일만나", "건강식품", 60, "봉", "실온", null),
+  item("프로바이오틱스", "건강식품", 1, "개", "실온", null),
+  item("엔도카드", "건강식품", 1, "개", "실온", null, "식전 위보호제"),
+  item("흑마늘", "건강식품", 1, "개", "실온", null),
+  item("밀크시슬", "건강식품", 1, "개", "실온", null),
+  item("MSM", "건강식품", 1, "개", "실온", null),
+  item("아연", "건강식품", 1, "개", "실온", null),
+  item("홍삼기보", "건강식품", 2, "박스", "실온", "2026-12-18"),
+  item("오메가3", "건강식품", 1, "개", "실온", null),
+  item("에비오스", "건강식품", 1, "개", "실온", null, "맥주효모"),
+  item("숙면보조제", "건강식품", 1, "개", "실온", null)
 ];
 
 let inventory = [];
@@ -77,7 +78,11 @@ let shopping = [];
 let pendingChanges = [];
 let receiptCandidates = [];
 let addPhotoData = "";
+let dialogAddPhotoData = "";
+let addDraft = null;
 let receiptPhotoData = "";
+let selectedInventoryCategory = "all";
+let currentDialogSaveHandler = null;
 let remoteAvailable = false;
 let saveTimer = 0;
 
@@ -98,12 +103,11 @@ function item(name, category, quantity, unit, storage, expiresAt, notes = "") {
     category,
     quantity,
     unit,
-    storage,
+    storage: normalizeStorage(storage),
     expiresAt,
     notes,
     thumbnail: "",
     status: "active",
-    addedBy: "Danny",
     createdAt: "2026-05-26T22:06:00+09:00",
     updatedAt: "2026-05-26T22:06:00+09:00"
   };
@@ -124,10 +128,8 @@ function bindEvents() {
     button.addEventListener("click", () => setRoute(button.dataset.jump));
   });
 
-  els.currentUser.value = localStorage.getItem(USER_KEY) || "Danny";
-  els.currentUser.addEventListener("change", () => {
-    localStorage.setItem(USER_KEY, els.currentUser.value);
-    toast(`${els.currentUser.value}로 기록합니다`);
+  document.querySelectorAll("[data-summary]").forEach((button) => {
+    button.addEventListener("click", () => handleSummaryAction(button.dataset.summary));
   });
 
   [els.searchInput, els.storageFilter, els.statusFilter, els.sortFilter, els.useSearchInput].forEach((input) => {
@@ -138,6 +140,11 @@ function bindEvents() {
   els.receiptInput.addEventListener("change", (event) => readImage(event, "receipt"));
   els.addForm.addEventListener("submit", saveNewItem);
   els.resetAddButton.addEventListener("click", resetAddForm);
+  els.openAddButton.addEventListener("click", () => openAddDialog());
+  els.dialogCloseButton.addEventListener("click", () => els.itemDialog.close());
+  els.dialogSaveButton.addEventListener("click", () => {
+    if (currentDialogSaveHandler) currentDialogSaveHandler();
+  });
 
   els.voiceButton.addEventListener("click", startVoice);
   els.analyzeVoiceButton.addEventListener("click", () => {
@@ -168,23 +175,29 @@ function initializeUi() {
 }
 
 async function initializeState() {
+  cleanupLegacyUserState();
   inventory = loadInventory();
-  activities = loadJson(ACTIVITY_KEY, []);
+  activities = normalizeActivityList(loadJson(ACTIVITY_KEY, []));
   shopping = loadJson(SHOPPING_KEY, []);
+  persistLocalState();
 
   const remote = await fetchRemoteState();
   if (!remote) return;
 
   remoteAvailable = true;
   if (Array.isArray(remote.inventory) && remote.inventory.length) {
-    inventory = remote.inventory;
-    activities = Array.isArray(remote.activities) ? remote.activities : [];
+    inventory = normalizeInventoryList(remote.inventory);
+    activities = normalizeActivityList(remote.activities);
     shopping = Array.isArray(remote.shopping) ? remote.shopping : [];
-    persistLocalState();
+    saveState();
     return;
   }
 
   saveState();
+}
+
+function cleanupLegacyUserState() {
+  localStorage.removeItem("homeInventory:user:v1");
 }
 
 function loadInventory() {
@@ -195,10 +208,34 @@ function loadInventory() {
   }
 
   try {
-    return JSON.parse(stored);
+    return normalizeInventoryList(JSON.parse(stored));
   } catch {
     return structuredClone(seedItems);
   }
+}
+
+function normalizeInventoryList(items) {
+  if (!Array.isArray(items)) return structuredClone(seedItems);
+
+  return items.map((stock) => {
+    const item = { ...stock };
+    delete item.addedBy;
+    if (isGeneratedThumbnail(item.thumbnail)) {
+      item.thumbnail = "";
+    }
+    item.storage = normalizeStorage(item.storage);
+    return item;
+  });
+}
+
+function normalizeActivityList(records) {
+  if (!Array.isArray(records)) return [];
+
+  return records.map((record) => {
+    const activity = { ...record };
+    delete activity.user;
+    return activity;
+  });
 }
 
 function loadJson(key, fallback) {
@@ -365,6 +402,19 @@ function renderSummary() {
   els.shoppingCount.textContent = shopping.length;
 }
 
+function handleSummaryAction(action) {
+  if (action === "shopping") {
+    openShoppingList();
+    return;
+  }
+
+  els.searchInput.value = "";
+  els.storageFilter.value = "all";
+  els.statusFilter.value = "active";
+  els.sortFilter.value = action === "active" ? "name" : "expiry";
+  setRoute("inventory");
+}
+
 function renderPriority() {
   const priority = activeItems()
     .filter((stock) => stock.expiresAt)
@@ -379,15 +429,17 @@ function renderPriority() {
   }
 
   els.priorityList.innerHTML = priority.map(({ stock, status }) => `
-    <article class="priority-item">
+    <button class="priority-item item-link" data-home-detail="${normalize(stock.name)}" type="button">
       ${thumb(stock)}
       <div>
         <h3>${escapeHtml(stock.name)}</h3>
         <p class="item-meta">${formatQuantity(stock)} · ${stock.storage} · ${formatDate(stock.expiresAt)}</p>
       </div>
       ${statusPill(status)}
-    </article>
+    </button>
   `).join("");
+
+  bindHomeDetailButtons(els.priorityList);
 }
 
 function renderRecent() {
@@ -401,14 +453,22 @@ function renderRecent() {
   }
 
   els.recentGrid.innerHTML = recent.map((stock) => `
-    <article class="mini-card">
+    <button class="mini-card item-link" data-home-detail="${normalize(stock.name)}" type="button">
       ${thumb(stock)}
       <div class="mini-card-body">
         <h3>${escapeHtml(stock.name)}</h3>
         <p class="item-meta">${formatQuantity(stock)}</p>
       </div>
-    </article>
+    </button>
   `).join("");
+
+  bindHomeDetailButtons(els.recentGrid);
+}
+
+function bindHomeDetailButtons(container) {
+  container.querySelectorAll("[data-home-detail]").forEach((button) => {
+    button.addEventListener("click", () => openGroupDetail(button.dataset.homeDetail));
+  });
 }
 
 function renderActivity() {
@@ -423,7 +483,7 @@ function renderActivity() {
         <strong>${escapeHtml(activity.title)}</strong>
         <p class="change-detail">${escapeHtml(activity.detail)}</p>
       </div>
-      <span class="activity-time">${escapeHtml(activity.user)} · ${relativeTime(activity.at)}</span>
+      <span class="activity-time">${relativeTime(activity.at)}</span>
     </article>
   `).join("");
 }
@@ -448,19 +508,30 @@ function renderInventory() {
     groups = groups.filter((group) => group.lots.some((lot) => lot.storage === storage));
   }
 
+  renderCategoryTabs(groups);
+
+  if (selectedInventoryCategory !== "all") {
+    groups = groups.filter((group) => group.category === selectedInventoryCategory);
+  }
+
   if (!groups.length) {
     els.inventoryGrid.innerHTML = empty("조건에 맞는 재고가 없습니다");
     return;
   }
 
-  els.inventoryGrid.innerHTML = renderCategorySections(groups, sort);
+  groups.sort((a, b) => compareInventoryGroups(a, b, sort));
+  els.inventoryGrid.innerHTML = `
+    <div class="inventory-list">
+      ${groups.map((group) => inventoryCard(group)).join("")}
+    </div>
+  `;
 
   els.inventoryGrid.querySelectorAll("[data-detail]").forEach((button) => {
     button.addEventListener("click", () => openGroupDetail(button.dataset.detail));
   });
 
-  els.inventoryGrid.querySelectorAll("[data-queue]").forEach((button) => {
-    queueManualChange(button.dataset.queue, button.dataset.action);
+  els.inventoryGrid.querySelectorAll("[data-quick]").forEach((button) => {
+    button.addEventListener("click", () => adjustGroupQuantity(button.dataset.quick, button.dataset.action));
   });
 
   els.inventoryGrid.querySelectorAll("[data-restore]").forEach((button) => {
@@ -472,6 +543,47 @@ function renderInventory() {
   });
 }
 
+function renderCategoryTabs(groups) {
+  const counts = groups.reduce((map, group) => {
+    const category = group.category || "기타";
+    map.set(category, (map.get(category) || 0) + 1);
+    return map;
+  }, new Map());
+
+  const tabs = [
+    { key: "all", label: "전체", count: groups.length },
+    ...CATEGORY_OPTIONS.map((category) => ({
+      key: category,
+      label: category,
+      count: counts.get(category) || 0
+    })).filter((tab) => tab.count > 0 || tab.key === selectedInventoryCategory)
+  ];
+
+  if (!tabs.some((tab) => tab.key === selectedInventoryCategory)) {
+    selectedInventoryCategory = "all";
+  }
+
+  els.categoryTabs.innerHTML = tabs.map((tab) => `
+    <button
+      class="category-tab ${tab.key === selectedInventoryCategory ? "is-active" : ""}"
+      data-category-tab="${escapeHtml(tab.key)}"
+      role="tab"
+      aria-selected="${tab.key === selectedInventoryCategory}"
+      type="button"
+    >
+      <span>${escapeHtml(tab.label)}</span>
+      <strong>${tab.count}</strong>
+    </button>
+  `).join("");
+
+  els.categoryTabs.querySelectorAll("[data-category-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedInventoryCategory = button.dataset.categoryTab;
+      renderInventory();
+    });
+  });
+}
+
 function renderCategorySections(groups, sort) {
   return categorySections(groups, sort).map((section) => `
     <section class="inventory-category">
@@ -479,7 +591,7 @@ function renderCategorySections(groups, sort) {
         <h2>${escapeHtml(section.category)}</h2>
         <span class="category-count">${section.groups.length}개</span>
       </div>
-      <div class="category-card-grid">
+      <div class="inventory-list">
         ${section.groups.map((group) => inventoryCard(group)).join("")}
       </div>
     </section>
@@ -512,26 +624,43 @@ function compareInventoryGroups(a, b, sort) {
 }
 
 function categoryRank(category) {
-  const order = ["식재료", "과일", "음료", "소스류", "간식", "건강식품", "기타"];
-  const index = order.indexOf(category);
-  return index >= 0 ? index : order.length;
+  const index = CATEGORY_OPTIONS.indexOf(category);
+  return index >= 0 ? index : CATEGORY_OPTIONS.length;
 }
 
 function inventoryCard(group) {
+  const thumbnail = group.thumbnail
+    ? thumb({ name: group.name, thumbnail: group.thumbnail })
+    : `<div class="list-thumb-placeholder">사진 없음</div>`;
+  const cardMeta = [
+    group.lots.length > 1 ? `${group.lots.length}묶음` : "",
+    group.lots[0]?.notes ? escapeHtml(group.lots[0].notes) : ""
+  ].filter(Boolean).join(" · ");
+  const cardBadges = [
+    ["expired", "soon", "week", "consumed"].includes(group.status.type) ? statusPill(group.status) : "",
+    group.lots.length > 1 ? `<span class="pill">${group.lots.length}묶음</span>` : ""
+  ].filter(Boolean).join("");
+
   return `
     <article class="inventory-card">
-      <div class="card-image">
-        ${group.thumbnail ? `<img class="thumb" src="${group.thumbnail}" alt="">` : fallbackThumb(group.name)}
-        <div class="card-badges">
-          ${statusPill(group.status)}
-          <span class="pill">${escapeHtml(group.storage)}</span>
-          ${group.lots.length > 1 ? `<span class="pill">${group.lots.length}묶음</span>` : ""}
+      <button class="list-thumb" data-detail="${group.key}" type="button" aria-label="${escapeHtml(group.name)} 사진과 상세 보기">
+        ${thumbnail}
+      </button>
+      <div class="inventory-main">
+        <div>
+          <h3>${escapeHtml(group.name)}</h3>
+          <div class="info-strip">
+            <span>${escapeHtml(group.category)}</span>
+            <span>${escapeHtml(group.storage)}</span>
+          </div>
+          <p class="expiry-line">${expiryCaption(group)}</p>
+          ${cardMeta ? `<p class="item-meta">${cardMeta}</p>` : ""}
+          ${cardBadges ? `<div class="row-badges">${cardBadges}</div>` : ""}
         </div>
       </div>
-      <div>
-        <h3>${escapeHtml(group.name)}</h3>
-        <p class="item-meta">${group.consumed ? "소진됨" : formatGroupQuantity(group)} · ${group.category}</p>
-        <p class="item-meta">${expiryCaption(group)}</p>
+      <div class="quantity-readout">
+        <strong data-quantity-readout="${group.key}">${Number(group.quantity).toLocaleString("ko-KR")}</strong>
+        <span>${escapeHtml(group.unit || "개")}</span>
       </div>
       ${group.consumed ? consumedCardActions(group) : activeCardActions(group)}
     </article>
@@ -539,14 +668,10 @@ function inventoryCard(group) {
 }
 
 function activeCardActions(group) {
-  const middleAction = group.quantity > 1
-    ? `<button data-detail="${group.key}" type="button">수량 수정</button>`
-    : `<button data-queue="${group.key}" data-action="low" type="button">얼마 안 남음</button>`;
-
   return `
     <div class="card-actions">
-      <button data-queue="${group.key}" data-action="minus1" type="button">-1</button>
-      ${middleAction}
+      <button data-quick="${group.key}" data-action="minus1" type="button">-1</button>
+      <button data-quick="${group.key}" data-action="plus1" type="button">+1</button>
       <button data-detail="${group.key}" type="button">상세</button>
     </div>
   `;
@@ -555,9 +680,9 @@ function activeCardActions(group) {
 function consumedCardActions(group) {
   return `
     <div class="card-actions">
-      <button data-restore="${group.key}" type="button">되돌리기</button>
-      <button data-shopping="${group.key}" type="button">장보기</button>
+      <button data-quick="${group.key}" data-action="plus1" type="button">+1</button>
       <button data-detail="${group.key}" type="button">상세</button>
+      <button data-shopping="${group.key}" type="button">다시 살 것</button>
     </div>
   `;
 }
@@ -588,6 +713,7 @@ function renderUseGrid() {
       </div>
       <div class="use-actions">
         <button data-queue="${group.key}" data-action="minus1" type="button">-1</button>
+        <button data-queue="${group.key}" data-action="plus1" type="button">+1</button>
         <button data-queue="${group.key}" data-action="all" type="button">다 씀</button>
         <button data-queue="${group.key}" data-action="low" type="button">얼마 안 남음</button>
       </div>
@@ -595,7 +721,7 @@ function renderUseGrid() {
   `).join("");
 
   els.useGrid.querySelectorAll("[data-queue]").forEach((button) => {
-    queueManualChange(button.dataset.queue, button.dataset.action);
+    button.addEventListener("click", queueManualChange(button.dataset.queue, button.dataset.action));
   });
 }
 
@@ -676,6 +802,16 @@ function queueManualChange(groupKey, action) {
       });
     }
 
+    if (action === "plus1") {
+      pendingChanges.push({
+        type: "increment",
+        itemId: lot.id,
+        name: group.name,
+        amount: 1,
+        detail: `${formatQuantity(lot)}에서 1${lot.unit || "개"} 추가`
+      });
+    }
+
     if (action === "all") {
       pendingChanges.push({
         type: "consumeGroup",
@@ -713,14 +849,96 @@ function restoreFirstConsumed(groupKey) {
   toast("소진 항목을 되돌렸습니다");
 }
 
+function adjustGroupQuantity(groupKey, action) {
+  const group = groupItems(inventory).find((candidate) => candidate.key === groupKey);
+  if (!group) return;
+
+  const lot = action === "minus1"
+    ? (group.activeLots[0] || group.lots[0])
+    : (group.activeLots[0] || group.lots[0]);
+  if (!lot) return;
+
+  const before = Number(lot.quantity) || 0;
+  if (action === "minus1") {
+    lot.quantity = Math.max(0, before - 1);
+    if (lot.quantity <= 0) lot.status = "consumed";
+  }
+
+  if (action === "plus1") {
+    lot.quantity = before + 1;
+    lot.status = "active";
+  }
+
+  lot.updatedAt = new Date().toISOString();
+  saveInventory();
+  recordActivity("수량 변경", `${lot.name}: ${before}${lot.unit} → ${lot.quantity}${lot.unit}`);
+  renderAll();
+}
+
 function addGroupToShopping(groupKey) {
   const group = groupItems(inventory.filter((stock) => normalize(stock.name) === groupKey)).at(0);
   if (!group) return;
 
   addShopping(group.name);
-  recordActivity("장보기 추가", `${group.name} 다시 사기`);
+  recordActivity("다시 살 것 추가", `${group.name} 다시 사기`);
   renderAll();
-  toast("장보기 후보에 담았습니다");
+  toast("다시 살 것에 담았습니다");
+}
+
+function openShoppingList() {
+  setDialogSave("", null);
+  els.dialogTitle.textContent = "다시 살 것";
+
+  if (!shopping.length) {
+    els.dialogBody.innerHTML = empty("다시 살 품목이 없습니다");
+  } else {
+    els.dialogBody.innerHTML = `
+      <div class="shopping-list">
+        ${shopping.map((name, index) => {
+          const group = groupItems(inventory.filter((stock) => normalize(stock.name) === normalize(name))).at(0);
+          const stock = group?.lots?.[0] || { name, category: "기타", thumbnail: "" };
+          return `
+            <article class="shopping-item">
+              ${thumb(stock)}
+              <div>
+                <strong>${escapeHtml(name)}</strong>
+                <p class="item-meta">${group ? `${escapeHtml(group.category)} · ${group.consumed ? "소진됨" : formatGroupQuantity(group)}` : "직접 추가한 품목"}</p>
+              </div>
+              <div class="shopping-actions">
+                ${group ? `<button data-shopping-detail="${group.key}" type="button">재고 보기</button>` : ""}
+                <button data-shopping-remove="${index}" type="button">삭제</button>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  els.dialogBody.querySelectorAll("[data-shopping-detail]").forEach((button) => {
+    button.addEventListener("click", () => {
+      els.itemDialog.close();
+      openGroupDetail(button.dataset.shoppingDetail);
+    });
+  });
+
+  els.dialogBody.querySelectorAll("[data-shopping-remove]").forEach((button) => {
+    button.addEventListener("click", () => removeShoppingItem(Number(button.dataset.shoppingRemove)));
+  });
+
+  if (!els.itemDialog.open) {
+    els.itemDialog.showModal();
+  }
+}
+
+function removeShoppingItem(index) {
+  const [removed] = shopping.splice(index, 1);
+  if (!removed) return;
+
+  saveState();
+  renderAll();
+  openShoppingList();
+  toast("다시 살 것에서 뺐습니다");
 }
 
 function queueVoiceChanges(text) {
@@ -844,6 +1062,16 @@ function applyPendingChanges() {
       applied.push(`${stock.name}: ${before}${stock.unit} → ${stock.quantity}${stock.unit}`);
     }
 
+    if (change.type === "increment") {
+      const stock = inventory.find((candidate) => candidate.id === change.itemId);
+      if (!stock) return;
+      const before = Number(stock.quantity) || 0;
+      stock.quantity = before + change.amount;
+      stock.status = "active";
+      stock.updatedAt = new Date().toISOString();
+      applied.push(`${stock.name}: ${before}${stock.unit} → ${stock.quantity}${stock.unit}`);
+    }
+
     if (change.type === "consumeGroup") {
       const groupLots = inventory.filter((stock) => normalize(stock.name) === change.groupKey && stock.status === "active");
       groupLots.forEach((stock) => {
@@ -884,21 +1112,17 @@ function clearPendingChanges() {
 function saveNewItem(event) {
   event.preventDefault();
 
-  const newItem = {
-    id: crypto.randomUUID(),
-    name: els.itemName.value.trim(),
+  const itemName = els.itemName.value.trim();
+  const newItem = makeInventoryItem({
+    name: itemName,
     category: els.itemCategory.value,
     quantity: Number(els.itemQuantity.value) || 1,
     unit: els.itemUnit.value.trim() || "개",
-    storage: els.itemStorage.value,
+    storage: normalizeStorage(els.itemStorage.value),
     expiresAt: els.itemExpiry.value || null,
     notes: els.itemNotes.value.trim(),
-    thumbnail: addPhotoData,
-    status: "active",
-    addedBy: els.currentUser.value,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
+    thumbnail: addPhotoData
+  });
 
   inventory.push(newItem);
   saveInventory();
@@ -906,6 +1130,208 @@ function saveNewItem(event) {
   resetAddForm();
   renderAll();
   toast("재고에 추가했습니다");
+}
+
+function openAddDialog(draft = null) {
+  setDialogSave("", null);
+  const values = draft || {
+    name: "",
+    category: "식재료",
+    quantity: 1,
+    unit: "개",
+    storage: "실온",
+    expiresAt: "",
+    notes: "",
+    thumbnail: ""
+  };
+
+  dialogAddPhotoData = values.thumbnail || "";
+  els.dialogTitle.textContent = "재고 추가";
+  els.dialogBody.innerHTML = `
+    <form class="dialog-add-form" id="dialogAddForm">
+      <div class="dialog-add-grid">
+        <label>
+          <span>품목명</span>
+          <input id="dialogItemName" required placeholder="예: 계란" value="${escapeHtml(values.name)}">
+        </label>
+        <label>
+          <span>카테고리</span>
+          <select id="dialogItemCategory">
+            ${CATEGORY_OPTIONS.map((category) => `<option ${category === values.category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          <span>수량</span>
+          <input id="dialogItemQuantity" type="number" min="1" step="1" required value="${Number(values.quantity) || 1}">
+        </label>
+        <label>
+          <span>단위</span>
+          <input id="dialogItemUnit" placeholder="개" value="${escapeHtml(values.unit || "개")}">
+        </label>
+        <label>
+          <span>보관</span>
+          <select id="dialogItemStorage">
+            ${STORAGE_OPTIONS.map((storage) => `<option ${storage === normalizeStorage(values.storage) ? "selected" : ""}>${escapeHtml(storage)}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          <span>유통기한</span>
+          <input id="dialogItemExpiry" type="date" value="${escapeHtml(values.expiresAt || "")}">
+        </label>
+      </div>
+      <label>
+        <span>구성/재료</span>
+        <textarea id="dialogItemNotes" rows="3" placeholder="예: 10알 + 2판, 구성품, 구매처">${escapeHtml(values.notes || "")}</textarea>
+      </label>
+      <div class="dialog-photo-row">
+        <div class="dialog-photo-preview" data-add-photo-preview>
+          ${dialogAddPhotoData ? `<img src="${escapeHtml(dialogAddPhotoData)}" alt="">` : `<span>사진 없음</span>`}
+        </div>
+        <label class="dialog-photo-picker">
+          <input id="dialogItemPhoto" type="file" accept="image/*" capture="environment">
+          <span>사진 업로드</span>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="secondary-action" type="button" data-add-cancel>취소</button>
+        <button class="primary-action" type="submit">입력 확인</button>
+      </div>
+    </form>
+  `;
+
+  els.dialogBody.querySelector("#dialogAddForm").addEventListener("submit", showAddConfirmation);
+  els.dialogBody.querySelector("#dialogItemPhoto").addEventListener("change", (event) => readDialogAddPhoto(event.target.files?.[0]));
+  els.dialogBody.querySelector("[data-add-cancel]").addEventListener("click", () => els.itemDialog.close());
+
+  if (!els.itemDialog.open) {
+    els.itemDialog.showModal();
+  }
+}
+
+function readDialogAddPhoto(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    dialogAddPhotoData = reader.result;
+    const preview = els.dialogBody.querySelector("[data-add-photo-preview]");
+    if (preview) {
+      preview.innerHTML = `<img src="${escapeHtml(dialogAddPhotoData)}" alt="">`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function showAddConfirmation(event) {
+  event.preventDefault();
+  setDialogSave("", null);
+
+  const draft = collectAddDraft();
+  if (!draft) return;
+
+  addDraft = draft;
+  els.dialogTitle.textContent = "추가 내용 확인";
+  els.dialogBody.innerHTML = `
+    <div class="add-confirm">
+      <div class="add-confirm-photo">
+        ${draft.thumbnail ? `<img src="${escapeHtml(draft.thumbnail)}" alt="">` : `<span>사진 없음</span>`}
+      </div>
+      <div class="add-confirm-main">
+        <h3>입력될 재료</h3>
+        <dl class="confirm-list">
+          <div>
+            <dt>품목명</dt>
+            <dd>${escapeHtml(draft.name)}</dd>
+          </div>
+          <div>
+            <dt>분류</dt>
+            <dd>${escapeHtml(draft.category)} · ${escapeHtml(draft.storage)}</dd>
+          </div>
+          <div>
+            <dt>수량</dt>
+            <dd>${Number(draft.quantity).toLocaleString("ko-KR")}${escapeHtml(draft.unit)}</dd>
+          </div>
+          <div>
+            <dt>유통기한</dt>
+            <dd>${draft.expiresAt ? formatDate(draft.expiresAt) : "유통기한 없음"}</dd>
+          </div>
+          <div>
+            <dt>구성/재료</dt>
+            <dd>${draft.notes ? escapeHtml(draft.notes) : "메모 없음"}</dd>
+          </div>
+        </dl>
+      </div>
+      <div class="form-actions add-confirm-actions">
+        <button class="secondary-action" type="button" data-add-edit>수정</button>
+        <button class="primary-action" type="button" data-add-final>최종 추가</button>
+      </div>
+    </div>
+  `;
+
+  els.dialogBody.querySelector("[data-add-edit]").addEventListener("click", () => openAddDialog(addDraft));
+  els.dialogBody.querySelector("[data-add-final]").addEventListener("click", confirmAddDraft);
+}
+
+function collectAddDraft() {
+  const nameInput = els.dialogBody.querySelector("#dialogItemName");
+  const quantityInput = els.dialogBody.querySelector("#dialogItemQuantity");
+  const itemName = nameInput?.value.trim();
+  const quantity = Number(quantityInput?.value);
+
+  if (!itemName) {
+    toast("품목명을 입력해주세요");
+    nameInput?.focus();
+    return null;
+  }
+
+  if (!Number.isFinite(quantity) || quantity < 1 || !Number.isInteger(quantity)) {
+    toast("수량은 1개 단위로 입력해주세요");
+    quantityInput?.focus();
+    return null;
+  }
+
+  return {
+    name: itemName,
+    category: els.dialogBody.querySelector("#dialogItemCategory").value,
+    quantity,
+    unit: els.dialogBody.querySelector("#dialogItemUnit").value.trim() || "개",
+    storage: normalizeStorage(els.dialogBody.querySelector("#dialogItemStorage").value),
+    expiresAt: els.dialogBody.querySelector("#dialogItemExpiry").value || null,
+    notes: els.dialogBody.querySelector("#dialogItemNotes").value.trim(),
+    thumbnail: dialogAddPhotoData
+  };
+}
+
+function confirmAddDraft() {
+  if (!addDraft) return;
+
+  const newItem = makeInventoryItem(addDraft);
+  inventory.push(newItem);
+  saveInventory();
+  recordActivity("재고 추가", `${newItem.name} ${formatQuantity(newItem)} · ${newItem.storage}`);
+  addDraft = null;
+  dialogAddPhotoData = "";
+  renderAll();
+  els.itemDialog.close();
+  toast("재고에 추가했습니다");
+}
+
+function makeInventoryItem(draft) {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    name: draft.name,
+    category: draft.category,
+    quantity: Number(draft.quantity) || 1,
+    unit: draft.unit || "개",
+    storage: normalizeStorage(draft.storage),
+    expiresAt: draft.expiresAt || null,
+    notes: draft.notes || "",
+    thumbnail: draft.thumbnail || "",
+    status: "active",
+    createdAt: now,
+    updatedAt: now
+  };
 }
 
 function resetAddForm() {
@@ -1016,7 +1442,7 @@ function parsePurchaseLine(line) {
     quantity,
     unit,
     category,
-    storage: guessStorage(name, category),
+    storage: normalizeStorage(guessStorage(name, category)),
     selected: category !== "기타",
     thumbnail: ""
   };
@@ -1037,12 +1463,11 @@ function addSelectedCandidates() {
       category: candidate.category,
       quantity: candidate.quantity,
       unit: candidate.unit,
-      storage: candidate.storage,
+      storage: normalizeStorage(candidate.storage),
       expiresAt: null,
       notes: "구매내역 입고",
       thumbnail: candidate.thumbnail || "",
       status: "active",
-      addedBy: els.currentUser.value,
       createdAt: now,
       updatedAt: now
     });
@@ -1060,38 +1485,162 @@ function openGroupDetail(groupKey) {
   const group = groupItems(inventory).find((candidate) => candidate.key === groupKey);
   if (!group) return;
 
+  setDialogSave("저장", () => saveGroupDetail(group.key));
   els.dialogTitle.textContent = group.name;
   els.dialogBody.innerHTML = `
+    <div class="detail-editor">
+      <label>
+        <span>품목명</span>
+        <input data-group-name="${group.key}" value="${escapeHtml(group.name)}">
+      </label>
+      <div class="detail-photo-editor">
+        ${group.thumbnail ? thumb({ name: group.name, thumbnail: group.thumbnail }) : `<div class="photo-empty">사진 없음</div>`}
+        <div class="detail-photo-actions">
+          <label>
+            <input data-group-photo="${group.key}" type="file" accept="image/*" capture="environment">
+            <span>사진 업로드</span>
+          </label>
+          <button data-clear-group-photo="${group.key}" type="button">사진 삭제</button>
+        </div>
+      </div>
+    </div>
     <div class="lot-list">
       ${group.lots.map((lot) => `
         <article class="lot-row">
-          <div>
-            <strong>${formatQuantity(lot)}</strong>
-            <p class="lot-meta">${lot.storage} · ${lot.expiresAt ? formatDate(lot.expiresAt) : "기한 없음"}${lot.notes ? ` · ${escapeHtml(lot.notes)}` : ""}</p>
-          </div>
-          <label class="lot-quantity-editor">
-            <span>남은 수량</span>
+          <div class="lot-main">
             <div>
-              <input data-lot-input="${lot.id}" type="number" min="0" step="0.5" value="${Number(lot.quantity) || 0}">
-              <em>${escapeHtml(lot.unit || "개")}</em>
+              <strong>${formatQuantity(lot)}</strong>
+              <p class="lot-meta">${lot.storage} · ${lot.expiresAt ? formatDate(lot.expiresAt) : "유통기한 없음"}${lot.notes ? ` · ${escapeHtml(lot.notes)}` : ""}</p>
             </div>
-          </label>
-          <div class="lot-actions">
-            <button data-lot="${lot.id}" data-lot-action="set" type="button">저장</button>
-            <button data-lot="${lot.id}" data-lot-action="minus1" type="button">-1</button>
-            <button data-lot="${lot.id}" data-lot-action="all" type="button">소진</button>
-            <button data-lot="${lot.id}" data-lot-action="undo" type="button">되돌리기</button>
+          </div>
+          <div class="detail-lot-fields">
+            <label>
+              <span>남은 수량</span>
+              <input data-lot-input="${lot.id}" type="number" min="0" step="1" value="${Number(lot.quantity) || 0}">
+            </label>
+            <label>
+              <span>단위</span>
+              <input data-lot-unit="${lot.id}" value="${escapeHtml(lot.unit || "개")}" placeholder="개">
+            </label>
           </div>
         </article>
       `).join("")}
     </div>
   `;
 
-  els.dialogBody.querySelectorAll("[data-lot]").forEach((button) => {
-    button.addEventListener("click", () => handleLotAction(button.dataset.lot, button.dataset.lotAction));
+  els.dialogBody.querySelectorAll("[data-group-photo]").forEach((input) => {
+    input.addEventListener("change", () => updateGroupPhoto(input.dataset.groupPhoto, input.files?.[0]));
   });
 
-  els.itemDialog.showModal();
+  els.dialogBody.querySelectorAll("[data-clear-group-photo]").forEach((button) => {
+    button.addEventListener("click", () => clearGroupPhoto(button.dataset.clearGroupPhoto));
+  });
+
+  if (!els.itemDialog.open) {
+    els.itemDialog.showModal();
+  }
+}
+
+function saveGroupDetail(groupKey) {
+  const lots = inventory.filter((stock) => normalize(stock.name) === groupKey);
+  if (!lots.length) return;
+
+  const nameInput = els.dialogBody.querySelector("[data-group-name]");
+  const nextName = nameInput?.value.trim();
+  if (!nextName) {
+    toast("품목명을 입력해주세요");
+    nameInput?.focus();
+    return;
+  }
+
+  const updates = [];
+  for (const stock of lots) {
+    const quantityInput = els.dialogBody.querySelector(`[data-lot-input="${stock.id}"]`);
+    const unitInput = els.dialogBody.querySelector(`[data-lot-unit="${stock.id}"]`);
+    const nextQuantity = Number(quantityInput?.value);
+    const nextUnit = unitInput?.value.trim() || "개";
+
+    if (!Number.isFinite(nextQuantity) || nextQuantity < 0 || !Number.isInteger(nextQuantity)) {
+      toast("남은 수량은 0 이상의 정수로 입력해주세요");
+      quantityInput?.focus();
+      return;
+    }
+
+    if (stock.name !== nextName) updates.push(`${stock.name} → ${nextName}`);
+    if (Number(stock.quantity) !== nextQuantity) updates.push(`${stock.name}: ${stock.quantity}${stock.unit || "개"} → ${nextQuantity}${nextUnit}`);
+    if ((stock.unit || "개") !== nextUnit) updates.push(`${stock.name}: 단위 ${stock.unit || "개"} → ${nextUnit}`);
+
+    stock.name = nextName;
+    stock.quantity = nextQuantity;
+    stock.unit = nextUnit;
+    stock.status = nextQuantity > 0 ? "active" : "consumed";
+    stock.updatedAt = new Date().toISOString();
+  }
+
+  saveInventory();
+  if (updates.length) {
+    recordActivity("상세 저장", updates.slice(0, 4).join(" · "));
+  }
+  renderAll();
+  els.itemDialog.close();
+  toast("상세 정보를 저장했습니다");
+}
+
+function updateGroupName(groupKey) {
+  const input = els.dialogBody.querySelector("[data-group-name]");
+  const nextName = input?.value.trim();
+  if (!nextName) {
+    toast("품목명을 입력해주세요");
+    return;
+  }
+
+  const lots = inventory.filter((stock) => normalize(stock.name) === groupKey);
+  if (!lots.length) return;
+
+  const before = lots[0].name;
+  lots.forEach((stock) => {
+    stock.name = nextName;
+    stock.updatedAt = new Date().toISOString();
+  });
+  saveInventory();
+  recordActivity("품목명 변경", `${before} → ${nextName}`);
+  renderAll();
+  openGroupDetail(normalize(nextName));
+  toast("품목명을 바꿨습니다");
+}
+
+function updateGroupPhoto(groupKey, file) {
+  const lots = inventory.filter((stock) => normalize(stock.name) === groupKey);
+  if (!lots.length || !file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    lots.forEach((stock) => {
+      stock.thumbnail = reader.result;
+      stock.updatedAt = new Date().toISOString();
+    });
+    saveInventory();
+    recordActivity("사진 변경", `${lots[0].name} 사진 업로드`);
+    renderAll();
+    openGroupDetail(groupKey);
+    toast("사진을 올렸습니다");
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearGroupPhoto(groupKey) {
+  const lots = inventory.filter((stock) => normalize(stock.name) === groupKey);
+  if (!lots.length) return;
+
+  lots.forEach((stock) => {
+    stock.thumbnail = "";
+    stock.updatedAt = new Date().toISOString();
+  });
+  saveInventory();
+  recordActivity("사진 변경", `${lots[0].name} 사진 삭제`);
+  renderAll();
+  openGroupDetail(groupKey);
+  toast("사진을 삭제했습니다");
 }
 
 function handleLotAction(id, action) {
@@ -1119,6 +1668,13 @@ function handleLotAction(id, action) {
     recordActivity("직접 수정", `${stock.name}: ${before}${stock.unit} → ${stock.quantity}${stock.unit}`);
   }
 
+  if (action === "plus1") {
+    const before = Number(stock.quantity) || 0;
+    stock.quantity = before + 1;
+    stock.status = "active";
+    recordActivity("직접 수정", `${stock.name}: ${before}${stock.unit} → ${stock.quantity}${stock.unit}`);
+  }
+
   if (action === "all") {
     stock.quantity = 0;
     stock.status = "consumed";
@@ -1134,8 +1690,8 @@ function handleLotAction(id, action) {
 
   stock.updatedAt = new Date().toISOString();
   saveInventory();
-  els.itemDialog.close();
   renderAll();
+  openGroupDetail(normalize(stock.name));
 }
 
 function exportMarkdown() {
@@ -1173,15 +1729,20 @@ function recordActivity(title, detail) {
     id: crypto.randomUUID(),
     title,
     detail,
-    user: els.currentUser?.value || localStorage.getItem(USER_KEY) || "Danny",
     at: new Date().toISOString()
   });
   activities = activities.slice(0, 40);
   saveState();
 }
 
+function setDialogSave(label, handler) {
+  currentDialogSaveHandler = handler;
+  els.dialogSaveButton.textContent = label || "저장";
+  els.dialogSaveButton.hidden = !handler;
+}
+
 function expiryStatus(date) {
-  if (!date) return { type: "none", label: "기한 없음" };
+  if (!date) return { type: "none", label: "유통기한 없음" };
   const diff = Math.ceil((new Date(`${date}T00:00:00+09:00`) - startOfDay(today)) / oneDay);
   if (diff < 0) return { type: "expired", label: `${Math.abs(diff)}일 지남` };
   if (diff <= 3) return { type: "soon", label: `${diff}일 남음` };
@@ -1203,9 +1764,9 @@ function formatGroupQuantity(group) {
 
 function expiryCaption(group) {
   if (group.consumed) {
-    return group.earliestExpiry ? `소진된 묶음 · 기한 ${formatDate(group.earliestExpiry)}` : "소진된 묶음";
+    return group.earliestExpiry ? `유통기한 ${formatDate(group.earliestExpiry)}` : "유통기한 없음";
   }
-  return group.earliestExpiry ? `가장 빠른 기한 ${formatDate(group.earliestExpiry)}` : "유통기한 없음";
+  return group.earliestExpiry ? `유통기한 ${formatDate(group.earliestExpiry)}` : "유통기한 없음";
 }
 
 function formatDate(date) {
@@ -1222,8 +1783,12 @@ function newestTime(lots) {
 }
 
 function thumb(stock) {
-  if (stock.thumbnail) return `<img class="thumb" src="${stock.thumbnail}" alt="">`;
+  if (stock.thumbnail) return `<img class="thumb" src="${escapeHtml(stock.thumbnail)}" alt="" loading="lazy">`;
   return fallbackThumb(stock.name);
+}
+
+function isGeneratedThumbnail(value) {
+  return String(value || "").startsWith("https://loremflickr.com");
 }
 
 function fallbackThumb(name) {
@@ -1237,6 +1802,10 @@ function empty(message) {
 
 function normalize(value) {
   return String(value || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function normalizeStorage(value) {
+  return STORAGE_OPTIONS.includes(value) ? value : "실온";
 }
 
 function normalizeSpeech(value) {
@@ -1292,7 +1861,6 @@ function guessCategory(name) {
 
 function guessStorage(name, category) {
   const value = normalize(name);
-  if (category === "건강식품") return "건강";
   if (/(냉동|새우|카레)/.test(value)) return "냉동";
   if (/(우유|요구르트|계란|치즈|잼|소스|와사비|토마토|참외|망고|사과)/.test(value)) return "냉장";
   return "실온";
