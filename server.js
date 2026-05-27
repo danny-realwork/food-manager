@@ -40,6 +40,17 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.url === "/api/upload" && req.method === "POST") {
+      const buffer = await readBinaryBody(req);
+      const { randomUUID } = require("crypto");
+      const filename = `${Date.now()}-${randomUUID().slice(0, 8)}.jpg`;
+      const imagesDir = path.join(dataDir, "images");
+      fs.mkdirSync(imagesDir, { recursive: true });
+      fs.writeFileSync(path.join(imagesDir, filename), buffer);
+      sendJson(res, { url: `/data/images/${filename}` });
+      return;
+    }
+
     serveStatic(req, res);
   } catch (error) {
     res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
@@ -83,6 +94,15 @@ function readBody(req) {
       }
     });
     req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
+}
+
+function readBinaryBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
 }

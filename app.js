@@ -1211,15 +1211,15 @@ function openAddDialog(draft = null) {
 function readDialogAddPhoto(file) {
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    dialogAddPhotoData = reader.result;
+  compressAndUpload(file).then((url) => {
+    dialogAddPhotoData = url;
     const preview = els.dialogBody.querySelector("[data-add-photo-preview]");
     if (preview) {
-      preview.innerHTML = `<img src="${escapeHtml(dialogAddPhotoData)}" alt="">`;
+      preview.innerHTML = `<img src="${escapeHtml(url)}" alt="">`;
     }
-  };
-  reader.readAsDataURL(file);
+  }).catch(() => {
+    toast("사진 업로드에 실패했습니다");
+  });
 }
 
 function showAddConfirmation(event) {
@@ -1349,21 +1349,54 @@ function readImage(event, target) {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    if (target === "add") {
-      addPhotoData = reader.result;
-      els.photoPreview.src = addPhotoData;
+  if (target === "add") {
+    els.photoPlaceholder.textContent = "업로드 중…";
+    compressAndUpload(file).then((url) => {
+      addPhotoData = url;
+      els.photoPreview.src = url;
       els.photoPreview.hidden = false;
       els.photoPlaceholder.hidden = true;
-    } else {
-      receiptPhotoData = reader.result;
-      els.receiptPreview.src = receiptPhotoData;
-      els.receiptPreview.hidden = false;
-      els.receiptPlaceholder.hidden = true;
-    }
+    }).catch(() => {
+      els.photoPlaceholder.textContent = "촬영 또는 업로드";
+      toast("사진 업로드에 실패했습니다");
+    });
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    receiptPhotoData = reader.result;
+    els.receiptPreview.src = receiptPhotoData;
+    els.receiptPreview.hidden = false;
+    els.receiptPlaceholder.hidden = true;
   };
   reader.readAsDataURL(file);
+}
+
+async function compressAndUpload(file) {
+  const bitmap = await createImageBitmap(file);
+  const maxSize = 600;
+  let { width, height } = bitmap;
+  if (width > maxSize || height > maxSize) {
+    const scale = maxSize / Math.max(width, height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.75));
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: blob,
+    headers: { "Content-Type": "image/jpeg" }
+  });
+  if (!res.ok) throw new Error("upload failed");
+  const { url } = await res.json();
+  return url;
 }
 
 function startVoice() {
@@ -1613,10 +1646,10 @@ function updateGroupPhoto(groupKey, file) {
   const lots = inventory.filter((stock) => normalize(stock.name) === groupKey);
   if (!lots.length || !file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
+  toast("사진 업로드 중…");
+  compressAndUpload(file).then((url) => {
     lots.forEach((stock) => {
-      stock.thumbnail = reader.result;
+      stock.thumbnail = url;
       stock.updatedAt = new Date().toISOString();
     });
     saveInventory();
@@ -1624,8 +1657,9 @@ function updateGroupPhoto(groupKey, file) {
     renderAll();
     openGroupDetail(groupKey);
     toast("사진을 올렸습니다");
-  };
-  reader.readAsDataURL(file);
+  }).catch(() => {
+    toast("사진 업로드에 실패했습니다");
+  });
 }
 
 function clearGroupPhoto(groupKey) {
