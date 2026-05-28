@@ -1665,6 +1665,7 @@ function saveGroupDetail(groupKey) {
   }
 
   const updates = [];
+  let anyChanged = false;
   for (const stock of lots) {
     const quantityInput = els.dialogBody.querySelector(`[data-lot-input="${stock.id}"]`);
     const unitInput = els.dialogBody.querySelector(`[data-lot-unit="${stock.id}"]`);
@@ -1683,6 +1684,19 @@ function saveGroupDetail(groupKey) {
       return;
     }
 
+    const nextStatus = nextQuantity > 0 ? "active" : "consumed";
+    const changed =
+      stock.name !== nextName ||
+      Number(stock.quantity) !== nextQuantity ||
+      (stock.unit || "개") !== nextUnit ||
+      stock.storage !== nextStorage ||
+      (stock.expiresAt || "") !== nextExpiry ||
+      (stock.notes || "") !== nextNotes ||
+      stock.status !== nextStatus;
+
+    if (!changed) continue;
+    anyChanged = true;
+
     if (stock.name !== nextName) updates.push(`${stock.name} → ${nextName}`);
     if (Number(stock.quantity) !== nextQuantity) updates.push(`${stock.name}: ${stock.quantity}${stock.unit || "개"} → ${nextQuantity}${nextUnit}`);
 
@@ -1692,13 +1706,20 @@ function saveGroupDetail(groupKey) {
     stock.storage = nextStorage;
     stock.expiresAt = nextExpiry || null;
     stock.notes = nextNotes;
-    stock.status = nextQuantity > 0 ? "active" : "consumed";
+    stock.status = nextStatus;
     stock.updatedAt = new Date().toISOString();
+  }
+
+  if (!anyChanged) {
+    els.itemDialog.close();
+    return;
   }
 
   saveInventory();
   if (updates.length) {
     recordActivity("상세 저장", updates.slice(0, 4).join(" · "));
+  } else {
+    recordActivity("상세 저장", `${nextName} 메타 갱신`);
   }
   renderAll();
   els.itemDialog.close();
